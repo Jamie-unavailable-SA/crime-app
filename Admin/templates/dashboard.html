@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Dashboard</title>
+    <style>
+        body {
+            margin: 0;
+            font-family: "Segoe UI", sans-serif;
+            background: #f6f8fa;
+            padding: 20px;
+        }
+
+        .topbar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        .logout {
+            background: #e5534b;
+            color: white;
+            padding: 8px 14px;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .logout:hover {
+            background: #c82333;
+        }
+
+        /* Tables */
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 30px;
+            background: white;
+        }
+
+        th, td {
+            border: 1px solid #333;
+            padding: 8px 12px;
+            text-align: left;
+            vertical-align: top;
+        }
+
+        th {
+            background: #ddd;
+            font-weight: bold;
+        }
+
+        /* Buttons */
+        .action-btn {
+            background: #0366d6;
+            border: none;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-right: 5px;
+        }
+
+        .action-btn:hover {
+            background: #024c9a;
+        }
+
+        .fix-btn {
+            background: #e5534b;
+            border: none;
+            color: white;
+            padding: 6px 14px;
+            border-radius: 5px;
+            cursor: pointer;
+        }
+
+        .fix-btn:hover {
+            background: #c82333;
+        }
+    </style>
+</head>
+<body>
+    <!-- Top bar -->
+    <div class="topbar">
+        <h1>Welcome, Admin {{ admin_id }}</h1>
+        <form action="/logout" method="get">
+            <button class="logout" type="submit">Log Out</button>
+        </form>
+    </div>
+
+    <!-- Reports Table -->
+    <h2>User | Report | Time</h2>
+    <table>
+        <tr>
+            <th>User</th>
+            <th>Report</th>
+            <th>Time</th>
+        </tr>
+        {% for r in reports %}
+        <tr>
+            <td>{{ r.reporter_name }}</td>
+            <td>{{ r.description }}</td>
+            <td>{{ r.report_datetime }}</td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <!-- Errors Table -->
+    <h2>User | Error Description</h2>
+    <table>
+        <tr>
+            <th>User</th>
+            <th>Error</th>
+            <th>Action</th>
+        </tr>
+        {% for s in supports %}
+        <tr>
+            <td>{{ s.requester_name }}</td>
+            <td>{{ s.description }}</td>
+            <td>
+                <form method="post" action="/support/fix">
+                    <input type="hidden" name="support_id" value="{{ s.support_id }}">
+                    <input type="hidden" name="admin_id" value="{{ admin_id }}">
+                    <button class="fix-btn" type="submit">Fix</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+
+    <!-- External Organisation Data Requests Table -->
+    <h2>External Organisation Data Requests</h2>
+    <table>
+        <tr>
+            <th>Organisation</th>
+            <th>Requested Data</th>
+            <th>Requested At</th>
+            <th>Action</th>
+        </tr>
+        {% for req in data_requests %}
+        <tr>
+            <td>{{ req.org_name }}</td>
+            <td>{{ req.requested_data }}</td>
+            <td>{{ req.requested_at }}</td>
+            <td>
+                <form method="post" action="/requests/respond" style="display:inline;">
+                    <input type="hidden" name="request_id" value="{{ req.request_id }}">
+                    <input type="hidden" name="admin_id" value="{{ admin_id }}">
+                    <button class="action-btn" name="action" value="approve" type="submit">Approve</button>
+                    <button class="fix-btn" name="action" value="reject" type="submit">Reject</button>
+                </form>
+            </td>
+        </tr>
+        {% endfor %}
+    </table>
+</body>
+</html>
