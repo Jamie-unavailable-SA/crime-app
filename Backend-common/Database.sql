@@ -93,3 +93,22 @@ delimiter ;
 
 INSERT INTO administrator (admin_id, password, last_login)
 VALUES (1, 'admin123', NULL);
+
+CREATE TABLE IF NOT EXISTS external_orgs (
+    id INT AUTO_INCREMENT PRIMARY KEY,
+    org_id VARCHAR(50) UNIQUE NOT NULL,
+    name VARCHAR(100) NOT NULL,
+    email VARCHAR(150) NOT NULL UNIQUE,
+    password VARCHAR(255) NOT NULL,
+    contact_person VARCHAR(100),
+    phone VARCHAR(20),
+    org_type ENUM('government', 'ngo', 'private') DEFAULT 'government',
+    status ENUM('active', 'inactive', 'suspended') DEFAULT 'active',
+    date_registered TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    last_login TIMESTAMP NULL
+);
+
+INSERT INTO external_orgs 
+(org_id, name, email, password, contact_person, phone, org_type, status) 
+VALUES 
+('ext001', 'Kenya Crime Research Institute', 'info@kcri.org', 'orgpass123', 'Dr. Jane Mwangi', '+254712345678', 'government', 'active');
