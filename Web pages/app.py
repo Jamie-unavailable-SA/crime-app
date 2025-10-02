@@ -5,20 +5,17 @@ import mysql.connector
 from mysql.connector import Error
 import uvicorn
 
-# Initialize FastAPI
 app = FastAPI()
 
-# Templates folder
 templates = Jinja2Templates(directory="templates")
 
-# Database connection helper
 def get_db_connection():
     try:
         conn = mysql.connector.connect(
             host="localhost",
-            user="root",         # change to your MySQL user
-            password="",         # change to your MySQL password
-            database="crime_app" # change to your DB name
+            user="root",         
+            password="",         
+            database="crime_app" 
         )
         return conn
     except Error as e:
@@ -26,18 +23,14 @@ def get_db_connection():
         return None
 
 
-# GET landing page
 @app.get("/", response_class=HTMLResponse)
 async def landing_page(request: Request):
     return templates.TemplateResponse("landing.html", {"request": request})
 
-# GET admin login page
 @app.get("/admin/login", response_class=HTMLResponse)
 async def login_page(request: Request):
     return templates.TemplateResponse("admin_login.html", {"request": request, "error": None})
 
-
-# POST login form
 @app.post("/login", response_class=HTMLResponse)
 async def login(request: Request, admin_id: str = Form(...), password: str = Form(...)):
     conn = get_db_connection()
@@ -49,7 +42,6 @@ async def login(request: Request, admin_id: str = Form(...), password: str = For
         conn.close()
 
         if result:
-            # Redirect to dashboard with admin_id as query parameter
             response = RedirectResponse(url=f"/dashboard?admin_id={admin_id}", status_code=303)
             return response
         else:
@@ -57,27 +49,42 @@ async def login(request: Request, admin_id: str = Form(...), password: str = For
 
     return templates.TemplateResponse("admin_login.html", {"request": request, "error": "Database connection failed"})
 
-# GET dashboard page
 @app.get("/dashboard", response_class=HTMLResponse)
 async def dashboard(request: Request, admin_id: str = None):
     return templates.TemplateResponse("admin_dashboard.html", {"request": request, "admin_id": admin_id})
 
+@app.get("/dashboard", response_class=HTMLResponse)
+async def admin_dashboard(request: Request):
+    conn = get_db_connection()
+    cursor = conn.cursor(dictionary=True)
+    cursor.execute("""
+        SELECT 
+            cr.report_id, cr.incident_datetime, cr.report_datetime, cr.description, 
+            cr.status, r.reporter_alias, ct.type_name, l.location_name
+        FROM crime_reports cr
+        LEFT JOIN reporter r ON cr.reporter_id = r.reporter_id
+        LEFT JOIN crime_type ct ON cr.crime_type = ct.type_id
+        LEFT JOIN location l ON cr.location = l.location_id
+        WHERE cr.status = 'pending'
+        ORDER BY cr.report_datetime DESC
+    """)
+    reports = cursor.fetchall()
+    cursor.close()
+    conn.close()
+    return templates.TemplateResponse("admin_dashboard.html", {"request": request, "reports": reports})
 
 
 
 
-# Logout route (redirects to landing page for both admin and org)
 @app.get("/logout")
 async def logout():
     return RedirectResponse(url="/", status_code=303)
 
 
-# GET organization login page
 @app.get("/org/login", response_class=HTMLResponse)
 async def org_login_page(request: Request):
     return templates.TemplateResponse("org_login.html", {"request": request, "error": None})
 
-# POST organization login form
 @app.post("/org/login", response_class=HTMLResponse)
 async def org_login(request: Request, org_id: str = Form(...), password: str = Form(...)):
     conn = get_db_connection()
@@ -97,9 +104,7 @@ async def org_login(request: Request, org_id: str = Form(...), password: str = F
     return templates.TemplateResponse("org_login.html", {"request": request, "error": "Database connection failed"})
 
 
-# Helper functions for org dashboard
 
-# Get org name from external_orgs
 def get_org_name(org_id):
     conn = get_db_connection()
     name = ""
@@ -113,25 +118,23 @@ def get_org_name(org_id):
         conn.close()
     return name
 
-# Get all activity reports (admin-generated)
 def get_activity_reports():
     conn = get_db_connection()
     reports = []
     if conn:
         cursor = conn.cursor(dictionary=True)
-        cursor.execute("SELECT report_id, datetime_from, datetime_to, generated_at FROM activity_reports ORDER BY generated_at DESC")
+        cursor.execute("SELECT report_id, datetime_from, datetime_to, generated_at FROM crime_reports ORDER BY generated_at DESC")
         reports = cursor.fetchall()
         cursor.close()
         conn.close()
     return reports
 
-# Search activity reports by date range
 def search_activity_reports(date_from, date_to):
     conn = get_db_connection()
     reports = []
     if conn:
         cursor = conn.cursor(dictionary=True)
-        query = "SELECT report_id, datetime_from, datetime_to, generated_at FROM activity_reports WHERE 1=1"
+        query = "SELECT report_id, datetime_from, datetime_to, generated_at FROM crime_reports WHERE 1=1"
         params = []
         if date_from:
             query += " AND generated_at >= %s"
@@ -147,14 +150,12 @@ def search_activity_reports(date_from, date_to):
     return reports
 
 
-# GET organization dashboard page
 @app.get("/org/dashboard", response_class=HTMLResponse)
 async def org_dashboard(request: Request, org_id: str = None):
     org_name = get_org_name(org_id)
     reports = get_activity_reports()
     return templates.TemplateResponse("org_dashboard.html", {"request": request, "org_id": org_id, "org_name": org_name, "reports": reports})
 
-# POST organization dashboard search (date range only)
 @app.post("/org/dashboard", response_class=HTMLResponse)
 async def org_dashboard_search(request: Request, org_id: str = Form(None), date_from: str = Form(""), date_to: str = Form("")):
     org_name = get_org_name(org_id)
@@ -162,7 +163,6 @@ async def org_dashboard_search(request: Request, org_id: str = Form(None), date_
     return templates.TemplateResponse("org_dashboard.html", {"request": request, "org_id": org_id, "org_name": org_name, "reports": reports})
 
 
-# View activity report details
 @app.get("/org/reports/{report_id}", response_class=HTMLResponse)
 async def org_report_view(request: Request, report_id: int):
     conn = get_db_connection()
@@ -178,15 +178,15 @@ async def org_report_view(request: Request, report_id: int):
     else:
         return HTMLResponse(f"<h2>Report {report_id} not found.</h2>")
 
-# Download activity report (stub)
 @app.get("/org/reports/{report_id}/download")
 async def org_report_download(report_id: int):
     return HTMLResponse(f"Download for activity report {report_id} (to implement)")
 
-# Email activity report (stub)
 @app.get("/org/reports/{report_id}/email")
 async def org_report_email(report_id: int):
     return HTMLResponse(f"Email for activity report {report_id} (to implement)")
 
 if __name__ == "__main__":
     uvicorn.run("app:app", host="127.0.0.1", port=8000, reload=True)
+
+

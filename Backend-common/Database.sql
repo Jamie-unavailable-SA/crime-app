@@ -112,3 +112,33 @@ INSERT INTO external_orgs
 (org_id, name, email, password, contact_person, phone, org_type, status) 
 VALUES 
 ('ext001', 'Kenya Crime Research Institute', 'info@kcri.org', 'orgpass123', 'Dr. Jane Mwangi', '+254712345678', 'government', 'active');
+-- Make sure there’s at least one reporter, crime_type, location, and admin first.
+-- Example reporter:
+INSERT INTO reporter (reporter_fname, reporter_lname, reporter_alias, reporter_age, reporter_location, password, pnumber) 
+VALUES ('John', 'Doe', 'JDoe', 25, 'Nairobi', 'test123', '+254700123456');
+
+-- Example crime type:
+INSERT INTO crime_type (type_name) VALUES ('Robbery');
+
+-- Example location:
+INSERT INTO location (location_name, county, subcounty, ward) 
+VALUES ('Kilimani', 'Nairobi', 'Dagoretti North', 'Kilimani Ward');
+
+-- Example admin:
+INSERT INTO administrator (password) VALUES ('adminpass123');
+
+-- Now insert a crime report:
+INSERT INTO crime_reports (
+    reporter_id, crime_type, location, incident_datetime, 
+    report_type, description, status, verified_at, verified_by
+) VALUES (
+    1,                -- reporter_id (assuming John Doe got ID=1)
+    1,                -- crime_type (Robbery)
+    1,                -- location (Kilimani)
+    '2025-09-13 20:15:00', 
+    'victimization',
+    'Victim was robbed at gunpoint near Yaya Centre.',
+    'approved',       -- directly mark as approved for testing
+    NOW(),            -- verified_at
+    1                 -- verified_by (admin_id = 1)
+);
