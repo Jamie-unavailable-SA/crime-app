@@ -53,14 +53,17 @@ async def login(request: Request, admin_id: str = Form(...), password: str = For
 async def dashboard(request: Request, admin_id: str = None):
     return templates.TemplateResponse("admin_dashboard.html", {"request": request, "admin_id": admin_id})
 
+
+
 @app.get("/dashboard", response_class=HTMLResponse)
 async def admin_dashboard(request: Request):
     conn = get_db_connection()
     cursor = conn.cursor(dictionary=True)
+    # Crime reports (pending)
     cursor.execute("""
         SELECT 
             cr.report_id, cr.incident_datetime, cr.report_datetime, cr.description, 
-            cr.status, r.reporter_alias, ct.type_name, l.location_name
+            cr.status, r.reporter_alias AS reporter_name, ct.type_name, l.location_name
         FROM crime_reports cr
         LEFT JOIN reporter r ON cr.reporter_id = r.reporter_id
         LEFT JOIN crime_type ct ON cr.crime_type = ct.type_id
@@ -69,9 +72,36 @@ async def admin_dashboard(request: Request):
         ORDER BY cr.report_datetime DESC
     """)
     reports = cursor.fetchall()
+
+    # Support errors
+    cursor.execute("""
+        SELECT s.support_id, s.requester_id, r.reporter_alias AS requester_name, s.description
+        FROM support_errors s
+        LEFT JOIN reporter r ON s.requester_id = r.reporter_id
+        ORDER BY s.support_id DESC
+    """)
+    supports = cursor.fetchall()
+
+    # External organisation data requests
+    cursor.execute("""
+        SELECT dr.request_id, dr.org_id, eo.name AS org_name, dr.requested_data, dr.requested_at
+        FROM data_requests dr
+        LEFT JOIN external_orgs eo ON dr.org_id = eo.org_id
+        ORDER BY dr.requested_at DESC
+    """)
+    data_requests = cursor.fetchall()
+
     cursor.close()
     conn.close()
-    return templates.TemplateResponse("admin_dashboard.html", {"request": request, "reports": reports})
+    return templates.TemplateResponse(
+        "admin_dashboard.html",
+        {
+            "request": request,
+            "reports": reports,
+            "supports": supports,
+            "data_requests": data_requests
+        }
+    )
 
 
 

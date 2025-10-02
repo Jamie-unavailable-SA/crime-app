@@ -142,3 +142,21 @@ INSERT INTO crime_reports (
     NOW(),            -- verified_at
     1                 -- verified_by (admin_id = 1)
 );
+
+INSERT INTO crime_reports (
+    reporter_id,
+    crime_type,
+    location,
+    incident_datetime,
+    report_type,
+    description,
+    status
+) VALUES (
+    1,                -- reporter_id (must exist in reporter table)
+    1,                -- crime_type (must exist in crime_type table)
+    1,                -- location (must exist in location table)
+    '2025-10-02 19:00:00',
+    'sighting',
+    'Unusual gathering near the market entrance.',
+    'pending'
+);
