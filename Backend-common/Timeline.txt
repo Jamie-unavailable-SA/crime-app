@@ -1,8 +1,0 @@
-Saturday 13/9/25
-1. created database
-2. Created landing page
-3. create admin login page
-4. created admin dashboard
-5. created external organisation login page
-6. created extern organisation dashboard
-7. Ensured login and logout functionality for both admin and external organization
