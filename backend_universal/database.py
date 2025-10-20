@@ -1,27 +1,28 @@
-# backend_universal/database.py
-
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
-from dotenv import load_dotenv
 import os
+from dotenv import load_dotenv
 
-# Load environment variables from .env
+# Load environment variables
 load_dotenv()
 
-# Get values safely with defaults
-DB_USER = os.getenv("DB_USER", "root")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "3306")  # must be a string!
-DB_NAME = os.getenv("DB_NAME", "crime_app")
+# Example: mysql+pymysql://root:@localhost/crime_app
+DATABASE_URL = os.getenv("DATABASE_URL", "mysql+mysqlconnector://root@localhost:3306/crime_app")
 
-# Build the database URL
-SQLALCHEMY_DATABASE_URL = (
-    f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-)
+# Create the SQLAlchemy engine
+engine = create_engine(DATABASE_URL)
 
-# Create engine and session
-engine = create_engine(SQLALCHEMY_DATABASE_URL, echo=True)
+# Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+
+# Base class for ORM models
 Base = declarative_base()
+
+# Dependency for FastAPI routes
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
