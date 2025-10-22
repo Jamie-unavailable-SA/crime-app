@@ -4,7 +4,8 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
-import com.example.crime_app.ui.screens.LandingScreen
+import androidx.navigation.compose.rememberNavController
+import com.example.crime_app.ui.AppGraph
 import com.example.crime_app.ui.theme.Crime_appTheme
 
 class MainActivity : ComponentActivity() {
@@ -13,7 +14,8 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             Crime_appTheme {
-                LandingScreen()
+                val navController = rememberNavController()
+                AppGraph(navController = navController)
             }
         }
     }
