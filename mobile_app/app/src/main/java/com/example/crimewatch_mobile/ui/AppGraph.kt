@@ -4,9 +4,9 @@ import androidx.compose.runtime.Composable
 import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
-import com.example.crime_app.ui.screens.LandingScreen
-import com.example.crime_app.ui.screens.LoginScreen
-import com.example.crime_app.ui.screens.RegisterScreen
+import com.example.crimewatch_mobile.ui.screens.LandingScreen
+import com.example.crimewatch_mobile.ui.screens.LoginScreen
+import com.example.crimewatch_mobile.ui.screens.RegisterScreen
 
 
 @Composable
