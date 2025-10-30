@@ -106,10 +106,13 @@
 <body>
     <div class="container">
         <div class="topbar">
-            <h1>Welcome, Admin {{ admin_id }}</h1>
-            <form action="/admin/logout" method="get">
+            <h1>Welcome, Admin {{ admin.admin_id }}</h1>
+            <!-- Preferred: POST logout form -->
+            <form action="/admin/logout" method="post" style="display:inline; margin:0;">
                 <button class="logout-btn" type="submit">Log Out</button>
             </form>
+            <!-- Fallback: GET link for simple clients -->
+            <a href="/admin/logout" style="margin-left:12px; color:#666; text-decoration:none;">(or click here)</a>
         </div>
 
 
@@ -144,7 +147,7 @@
                 <td>
                     <form method="post" action="/admin/support/fix">
                         <input type="hidden" name="support_id" value="{{ s.support_id }}">
-                        <input type="hidden" name="admin_id" value="{{ admin_id }}">
+                        <input type="hidden" name="admin_id" value="{{ admin.admin_id }}">
                         <button class="fix-btn" type="submit">Fix</button>
                     </form>
                 </td>
@@ -169,7 +172,7 @@
                 <td>
                     <form method="post" action="/admin/requests/respond" style="display:inline;">
                         <input type="hidden" name="request_id" value="{{ req.request_id }}">
-                        <input type="hidden" name="admin_id" value="{{ admin_id }}">
+                        <input type="hidden" name="admin_id" value="{{ admin.admin_id }}">
                         <button class="action-btn" name="action" value="approve" type="submit">Approve</button>
                         <button class="fix-btn" name="action" value="reject" type="submit">Reject</button>
                     </form>

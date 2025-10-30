@@ -1,6 +1,5 @@
 create database if not exists crimewatch;
 use crimewatch;
-
 create table if not exists reporters(
     reporter_id int AUTO_INCREMENT PRIMARY KEY,
     alias varchar(50) not null,
@@ -15,34 +14,31 @@ create table if not exists reporters(
     index idx_reporters_email(email),
     index idx_reporters_phone(phone)
 );
-
 create table if not exists admins(
     admin_id int AUTO_INCREMENT PRIMARY KEY,
     password varchar(255) not null,
     date_created DATETIME DEFAULT CURRENT_TIMESTAMP,
     last_login DATETIME DEFAULT null
 );
-
 create table if not exists external_orgs(
     org_id int AUTO_INCREMENT PRIMARY KEY,
     org_name varchar(100) not null,
     contact_person varchar(100) DEFAULT null,
     contact_email varchar(100) unique,
     contact_phone varchar(15) DEFAULT null,
+    password varchar(255) not null,
     date_added datetime DEFAULT CURRENT_TIMESTAMP,
     last_login datetime DEFAULT null,
     index idx_external_orgs_name(org_name),
     index idx_external_orgs_email(contact_email),
     index idx_external_orgs_phone(contact_phone)
 );
-
 create table if not exists crime_types(
     crime_type_id int AUTO_INCREMENT PRIMARY KEY,
     type_name varchar(100) not null,
     description text DEFAULT null,
     index idx_crime_types_name(type_name)
 );
-
 create table if not exists areas(
     area_id int AUTO_INCREMENT PRIMARY KEY,
     area_name varchar(100) not null,
@@ -55,7 +51,6 @@ create table if not exists areas(
     index idx_areas_ward(ward),
     index idx_areas_latlong(latitude, longitude)
 );
-
 create table if not exists reports(
     report_id int AUTO_INCREMENT PRIMARY KEY,
     reporter_id int not null,
@@ -82,7 +77,6 @@ create table if not exists reports(
     index idx_reports_datetime(report_datetime),
     index idx_reports_latlong(latitude, longitude)
 );
-
 create table if not exists report_addons(
     addon_id int AUTO_INCREMENT PRIMARY KEY,
     report_id int not null,
@@ -94,7 +88,6 @@ create table if not exists report_addons(
     index idx_report_addons_report(report_id),
     index idx_report_addons_type(file_type)
 );
-
 create table if not exists support_chats(
     chat_id int AUTO_INCREMENT PRIMARY KEY,
     reporter_id int not null,
@@ -109,7 +102,6 @@ create table if not exists support_chats(
     index idx_support_chats_admin(admin_id),
     index idx_support_chats_status(status)
 );
-
 create table if not exists chat_messages(
     message_id int AUTO_INCREMENT PRIMARY KEY,
     chat_id int not null,
@@ -123,7 +115,6 @@ create table if not exists chat_messages(
     index idx_chat_messages_sender(sender_type, sender_id),
     index idx_chat_messages_sent_at(sent_at)
 );
-
 create table if not exists org_requests(
     request_id int AUTO_INCREMENT PRIMARY KEY,
     org_id int not null,
@@ -144,7 +135,6 @@ create table if not exists org_requests(
     index idx_org_requests_status(status),
     index idx_org_requests_dates(start_date, end_date)
 );
-
 create table if not exists data_request_responses(
     response_id int AUTO_INCREMENT PRIMARY KEY,
     request_id int not null,
@@ -157,7 +147,6 @@ create table if not exists data_request_responses(
     index idx_data_request_responses_request (request_id),
     index idx_data_request_responses_admin (sent_by_admin)
 );
-
 create table if not exists report_approvals(
     approval_id int AUTO_INCREMENT PRIMARY KEY,
     report_id int not null,
@@ -171,7 +160,6 @@ create table if not exists report_approvals(
     index idx_report_approvals_admin(admin_id),
     index idx_report_approvals_performed(performed_at)
 );
-
 create table if not exists notifications(
     notification_id int AUTO_INCREMENT PRIMARY KEY,
     recipient_type enum('reporter', 'admin', 'external_org') not null,
@@ -186,7 +174,6 @@ create table if not exists notifications(
     index idx_notifications_is_read(is_read),
     index idx_notifications_created(created_at)
 );
-
 create table if not exists heatmap_queries(
     query_id int AUTO_INCREMENT PRIMARY KEY,
     reporter_id int default null,
@@ -215,7 +202,6 @@ create table if not exists analytics_cache(
     index idx_analytics_query_hash(query_hash),
     index idx_analytics_generated(generated_at)
 );
-
 create table if not exists sessions(
     session_id int AUTO_INCREMENT PRIMARY KEY,
     user_type enum('reporter', 'admin', 'external_org') not null,
@@ -226,7 +212,6 @@ create table if not exists sessions(
     index idx_sessions_user(user_type, user_id),
     index idx_sessions_token(token(255))
 );
-
 create table if not exists feedback(
     feedback_id int AUTO_INCREMENT PRIMARY KEY,
     given_by_type enum('reporter', 'org') not null,
@@ -238,7 +223,6 @@ create table if not exists feedback(
     index idx_feedback_giver(given_by_type, given_by_id),
     index idx_feedback_category(category)
 );
-
 create table if not exists activity_log(
     activity_id int AUTO_INCREMENT PRIMARY KEY,
     actor_type enum('reporter', 'admin', 'external_org', 'system') not null,
@@ -252,7 +236,6 @@ create table if not exists activity_log(
     index idx_activity_action(action),
     index idx_activity_timestamp(timestamp)
 );
-
 drop view if exists v_recent_pending_reports;
 create view v_recent_pending_reports as
 select
@@ -269,11 +252,11 @@ left join areas a on r.area_id = a.area_id
 where r.status = 'pending'
 order by r.report_datetime DESC
 limit 100;
-
 show tables;
 describe heatmap_queries;
 SELECT table_name, constraint_name, referenced_table_name
 FROM information_schema.KEY_COLUMN_USAGE
 WHERE TABLE_SCHEMA = 'crimewatch' AND referenced_table_name IS NOT NULL;
-
 show databases;
+INSERT INTO admins (password, date_created, last_login)
+VALUES ('$argon2id$v=19$m=65536,t=3,p=4$Vqp1jvE+x/g/B6B0TglBSA$uY88Gaze6/Mo0ZVAycmDDNyLzjWKzFbYnrcFXrtFxQE', NOW(), NULL);
