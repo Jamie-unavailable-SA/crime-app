@@ -11,20 +11,24 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.crimewatch_mobile.viewmodel.AuthViewModel
+import com.example.crimewatch_mobile.viewmodel.RegistrationResult
 
 
 @Composable
-fun RegisterScreen(navController: NavController) {
-    var name by remember { mutableStateOf("") }
-    var email by remember { mutableStateOf("") }
+fun RegisterScreen(navController: NavController, authViewModel: AuthViewModel = viewModel()) {
+    var alias by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
     var confirmPassword by remember { mutableStateOf("") }
+    var email by remember { mutableStateOf("") }
+    var phone by remember { mutableStateOf("") }
+    val registrationState by authViewModel.registrationState.collectAsState()
+    var passwordMismatchError by remember { mutableStateOf(false) }
 
-
-    val redColor = Color(0xFFE5534B)    // DB interaction button color
-    val blackColor = Color(0xFF24292F)  // Text and neutral elements
-
+    val redColor = Color(0xFFE5534B)
+    val blackColor = Color(0xFF24292F)
 
     Column(
         modifier = Modifier
@@ -41,31 +45,16 @@ fun RegisterScreen(navController: NavController) {
             )
         )
 
-
         Spacer(modifier = Modifier.height(32.dp))
 
-
         OutlinedTextField(
-            value = name,
-            onValueChange = { name = it },
-            label = { Text("Full Name") },
+            value = alias,
+            onValueChange = { alias = it },
+            label = { Text("Alias (username)") },
             modifier = Modifier.fillMaxWidth()
         )
 
-
         Spacer(modifier = Modifier.height(16.dp))
-
-
-        OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
-            modifier = Modifier.fillMaxWidth()
-        )
-
-
-        Spacer(modifier = Modifier.height(16.dp))
-
 
         OutlinedTextField(
             value = password,
@@ -75,26 +64,61 @@ fun RegisterScreen(navController: NavController) {
             modifier = Modifier.fillMaxWidth()
         )
 
-
         Spacer(modifier = Modifier.height(16.dp))
-
 
         OutlinedTextField(
             value = confirmPassword,
             onValueChange = { confirmPassword = it },
             label = { Text("Confirm Password") },
             visualTransformation = PasswordVisualTransformation(),
+            isError = passwordMismatchError,
+            modifier = Modifier.fillMaxWidth()
+        )
+        if (passwordMismatchError) {
+            Text(text = "Passwords do not match", color = Color.Red)
+        }
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = email,
+            onValueChange = { email = it },
+            label = { Text("Email (optional)") },
             modifier = Modifier.fillMaxWidth()
         )
 
+        Spacer(modifier = Modifier.height(16.dp))
+
+        OutlinedTextField(
+            value = phone,
+            onValueChange = { phone = it },
+            label = { Text("Phone (optional)") },
+            modifier = Modifier.fillMaxWidth()
+        )
 
         Spacer(modifier = Modifier.height(24.dp))
 
+        when (registrationState) {
+            is RegistrationResult.Loading -> {
+                CircularProgressIndicator()
+            }
+            is RegistrationResult.Error -> {
+                Text(text = (registrationState as RegistrationResult.Error).message, color = Color.Red)
+            }
+            is RegistrationResult.Success -> {
+                navController.navigate("login")
+            }
+            else -> {}
+        }
 
-        // Red Register Button (DB interaction)
         Button(
             onClick = {
-                // TODO: Handle registration logic
+                if (password == confirmPassword) {
+                    passwordMismatchError = false
+                    authViewModel.register(alias, password, email.ifBlank { null }, phone.ifBlank { null })
+                } else {
+                    passwordMismatchError = true
+                }
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -107,11 +131,8 @@ fun RegisterScreen(navController: NavController) {
             Text("Register", fontSize = 18.sp)
         }
 
-
         Spacer(modifier = Modifier.height(16.dp))
 
-
-        // Login link (neutral, black)
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically

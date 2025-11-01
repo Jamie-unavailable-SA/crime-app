@@ -11,18 +11,20 @@ import androidx.compose.ui.text.input.PasswordVisualTransformation
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.lifecycle.viewmodel.compose.viewModel
 import androidx.navigation.NavController
+import com.example.crimewatch_mobile.viewmodel.AuthViewModel
+import com.example.crimewatch_mobile.viewmodel.LoginResult
 
 
 @Composable
-fun LoginScreen(navController: NavController) {
-    var email by remember { mutableStateOf("") }
+fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = viewModel()) {
+    var identifier by remember { mutableStateOf("") }
     var password by remember { mutableStateOf("") }
+    val loginState by authViewModel.loginState.collectAsState()
 
-
-    val redColor = Color(0xFFE5534B)    // Deep red for DB interactions
-    val blackColor = Color(0xFF24292F) // Deep black for neutral actions
-
+    val redColor = Color(0xFFE5534B)
+    val blackColor = Color(0xFF24292F)
 
     Column(
         modifier = Modifier
@@ -39,20 +41,16 @@ fun LoginScreen(navController: NavController) {
             )
         )
 
-
         Spacer(modifier = Modifier.height(32.dp))
 
-
         OutlinedTextField(
-            value = email,
-            onValueChange = { email = it },
-            label = { Text("Email") },
+            value = identifier,
+            onValueChange = { identifier = it },
+            label = { Text("Alias or Email") },
             modifier = Modifier.fillMaxWidth()
         )
 
-
         Spacer(modifier = Modifier.height(16.dp))
-
 
         OutlinedTextField(
             value = password,
@@ -62,14 +60,24 @@ fun LoginScreen(navController: NavController) {
             modifier = Modifier.fillMaxWidth()
         )
 
-
         Spacer(modifier = Modifier.height(24.dp))
 
+        when (loginState) {
+            is LoginResult.Loading -> {
+                CircularProgressIndicator()
+            }
+            is LoginResult.Error -> {
+                Text(text = (loginState as LoginResult.Error).message, color = Color.Red)
+            }
+            is LoginResult.Success -> {
+                // TODO: Navigate to the main app screen
+            }
+            else -> {}
+        }
 
-        // Red Login Button (DB interaction)
         Button(
             onClick = {
-                // TODO: Handle login logic
+                authViewModel.login(identifier, password)
             },
             modifier = Modifier
                 .fillMaxWidth()
@@ -82,11 +90,8 @@ fun LoginScreen(navController: NavController) {
             Text("Login", fontSize = 18.sp)
         }
 
-
         Spacer(modifier = Modifier.height(16.dp))
 
-
-        // Register link (neutral, black)
         Row(
             horizontalArrangement = Arrangement.Center,
             verticalAlignment = Alignment.CenterVertically
