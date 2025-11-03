@@ -27,9 +27,6 @@ fun RegisterScreen(navController: NavController, authViewModel: AuthViewModel = 
     val registrationState by authViewModel.registrationState.collectAsState()
     var passwordMismatchError by remember { mutableStateOf(false) }
 
-    val redColor = Color(0xFFE5534B)
-    val blackColor = Color(0xFF24292F)
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -41,7 +38,7 @@ fun RegisterScreen(navController: NavController, authViewModel: AuthViewModel = 
             text = "Create Account",
             style = MaterialTheme.typography.headlineLarge.copy(
                 fontWeight = FontWeight.Bold,
-                color = blackColor
+                color = MaterialTheme.colorScheme.secondary
             )
         )
 
@@ -124,7 +121,7 @@ fun RegisterScreen(navController: NavController, authViewModel: AuthViewModel = 
                 .fillMaxWidth()
                 .height(50.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = redColor,
+                containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.White
             )
         ) {
@@ -139,12 +136,12 @@ fun RegisterScreen(navController: NavController, authViewModel: AuthViewModel = 
         ) {
             Text(
                 text = "Already have an account?",
-                color = blackColor
+                color = MaterialTheme.colorScheme.secondary
             )
             TextButton(onClick = { navController.navigate("login") }) {
                 Text(
                     text = " Login here",
-                    color = blackColor,
+                    color = MaterialTheme.colorScheme.secondary,
                     textDecoration = TextDecoration.Underline
                 )
             }

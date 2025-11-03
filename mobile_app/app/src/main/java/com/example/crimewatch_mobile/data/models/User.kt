@@ -1,3 +1,9 @@
 package com.example.crimewatch_mobile.data.models
 
-data class User(val id: String, val name: String, val email: String)
+data class User(
+    val alias: String,
+    val firstName: String?,
+    val lastName: String?,
+    val email: String?,
+    val phone: String?
+)

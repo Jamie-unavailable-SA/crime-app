@@ -23,9 +23,6 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
     var password by remember { mutableStateOf("") }
     val loginState by authViewModel.loginState.collectAsState()
 
-    val redColor = Color(0xFFE5534B)
-    val blackColor = Color(0xFF24292F)
-
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -37,7 +34,7 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
             text = "CrimeWatch",
             style = MaterialTheme.typography.headlineLarge.copy(
                 fontWeight = FontWeight.Bold,
-                color = blackColor
+                color = MaterialTheme.colorScheme.secondary
             )
         )
 
@@ -70,7 +67,9 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
                 Text(text = (loginState as LoginResult.Error).message, color = Color.Red)
             }
             is LoginResult.Success -> {
-                // TODO: Navigate to the main app screen
+                LaunchedEffect(Unit) {
+                    navController.navigate("profile")
+                }
             }
             else -> {}
         }
@@ -83,7 +82,7 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
                 .fillMaxWidth()
                 .height(50.dp),
             colors = ButtonDefaults.buttonColors(
-                containerColor = redColor,
+                containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = Color.White
             )
         ) {
@@ -98,12 +97,12 @@ fun LoginScreen(navController: NavController, authViewModel: AuthViewModel = vie
         ) {
             Text(
                 text = "Don't have an account?",
-                color = blackColor
+                color = MaterialTheme.colorScheme.secondary
             )
             TextButton(onClick = { navController.navigate("register") }) {
                 Text(
                     text = " Register here",
-                    color = blackColor,
+                    color = MaterialTheme.colorScheme.secondary,
                     textDecoration = TextDecoration.Underline
                 )
             }

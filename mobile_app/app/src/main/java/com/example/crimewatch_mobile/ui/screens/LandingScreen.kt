@@ -16,12 +16,7 @@ import androidx.navigation.NavController
 
 @Composable
 fun LandingScreen(navController: NavController) {
-    // 🎨 Color Scheme (consistent app-wide)
     val backgroundColor = Color(0xFFF6F8FA)   // light background
-    val textColor = Color(0xFF24292F)         // main text color
-    val redButton = Color(0xFFE5534B)         // for DB interaction buttons
-    val darkButton = Color(0xFF24292F)        // for navigation/general actions
-
 
     Surface(
         modifier = Modifier
@@ -35,11 +30,10 @@ fun LandingScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.Center
         ) {
-            // App Title
             Text(
                 text = "CrimeWatch",
                 fontSize = 34.sp,
-                color = textColor,
+                color = MaterialTheme.colorScheme.secondary,
                 fontWeight = FontWeight.Bold
             )
 
@@ -49,18 +43,16 @@ fun LandingScreen(navController: NavController) {
 
             Text(
                 text = "Stay informed. Report incidents. Improve safety.",
-                color = textColor.copy(alpha = 0.8f),
+                color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.8f),
                 fontSize = 16.sp
             )
 
 
             Spacer(modifier = Modifier.height(48.dp))
 
-
-            // 🔴 Database interaction button (Register)
             Button(
                 onClick = { navController.navigate("register") },
-                colors = ButtonDefaults.buttonColors(containerColor = darkButton),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -73,10 +65,9 @@ fun LandingScreen(navController: NavController) {
             Spacer(modifier = Modifier.height(16.dp))
 
 
-            // ⚫ General navigation button (Login screen)
             Button(
                 onClick = { navController.navigate("login") },
-                colors = ButtonDefaults.buttonColors(containerColor = darkButton),
+                colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.secondary),
                 shape = RoundedCornerShape(12.dp),
                 modifier = Modifier
                     .fillMaxWidth()
