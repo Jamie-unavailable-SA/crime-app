@@ -90,6 +90,25 @@ def create_reporter(db: Session, alias: str, password: str, email: str = None, p
     db.refresh(rep)
     return rep
 
+def get_reporter_by_id(db: Session, reporter_id: int):
+    """Fetch a reporter record by its ID."""
+    return db.query(Reporter).filter(Reporter.reporter_id == reporter_id).first()
+
+
+def update_reporter(db: Session, reporter, f_name=None, l_name=None, email=None, phone=None):
+    """Update reporter details and save changes."""
+    if f_name is not None:
+        reporter.f_name = f_name
+    if l_name is not None:
+        reporter.l_name = l_name
+    if email is not None:
+        reporter.email = email
+    if phone is not None:
+        reporter.phone = phone
+
+    db.commit()
+    db.refresh(reporter)
+    return reporter
 
 
 

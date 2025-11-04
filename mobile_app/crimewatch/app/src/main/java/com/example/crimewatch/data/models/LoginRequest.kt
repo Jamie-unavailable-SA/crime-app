@@ -1,4 +1,4 @@
 package com.example.crimewatch.data.models
 
-class LoginRequest {
-}
+
+data class LoginRequest(val identifier: String, val password: String)
