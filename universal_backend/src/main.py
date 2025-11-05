@@ -1,15 +1,33 @@
-from typing import Optional
-from fastapi import FastAPI, Request, Form, Depends
+from typing import Optional, List
+from fastapi import FastAPI, Request, Form, Depends, APIRouter, HTTPException, UploadFile, File
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.templating import Jinja2Templates
 from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
+import os
+from uuid import uuid4
+from datetime import datetime
+from pydantic import BaseModel
+
+UPLOAD_DIR = os.environ.get("REPORT_UPLOAD_DIR", r"D:\Project\crime-app\uploads")
+os.makedirs(UPLOAD_DIR, exist_ok=True)
 
 
 from app.db import session as db_session
 from app.models import sqlalchemy_models as models
-from app.crud import crud_auth
+from app.crud import crud_auth, crud_reports
 
+class ReportRequest(BaseModel):
+    reporter_id: int
+    crime_type_id: int
+    description: str
+    area_id: int
+    report_type: Optional[str] = "sighting"
+    latitude: Optional[float] = None
+    longitude: Optional[float] = None
+    imageUrls: Optional[List[str]] = []
+    occurrence_time: Optional[str] = None
 
 app = FastAPI(
     title="CrimeWatch API",
@@ -26,6 +44,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+router = APIRouter()
 
 
 # Mount templates
@@ -181,17 +201,32 @@ async def api_register_reporter(payload: dict, db: Session = Depends(db_session.
     return {"status": "ok", "reporter_id": rep.reporter_id}
 
 
-@app.post('/api/reporters/login')
+@app.post("/api/reporters/login")
 async def api_login_reporter(payload: dict, db: Session = Depends(db_session.get_db)):
     models.Base.metadata.create_all(bind=db_session.engine)
-    identifier = payload.get('identifier')
-    password = payload.get('password')
+
+    identifier = payload.get("identifier")
+    password = payload.get("password")
+
     if not identifier or not password:
         return {"error": "identifier and password required"}
+
     rep = crud_auth.authenticate_reporter(db, identifier, password)
     if not rep:
         return {"error": "invalid credentials"}
-    return {"status": "ok", "reporter_id": rep.reporter_id}
+
+    # Return profile details immediately
+    return {
+        "status": "ok",
+        "reporter_id": rep.reporter_id,
+        "alias": rep.alias,
+        "f_name": rep.f_name,
+        "l_name": rep.l_name,
+        "email": rep.email,
+        "phone": rep.phone,
+        "date_joined": rep.date_joined,
+        "last_login": rep.last_login,
+    }
 
 
 @app.get("/api/reporters/{reporter_id}")
@@ -230,6 +265,78 @@ async def api_update_reporter(reporter_id: int, payload: dict, db: Session = Dep
         "last_login": updated_rep.last_login
     }
 
+@app.post("/api/reports")
+async def api_create_report(payload: ReportRequest, db: Session = Depends(db_session.get_db)):
+    """Create a new crime report from the mobile app (expects JSON)."""
+    reporter = db.query(models.Reporter).filter(models.Reporter.reporter_id == payload.reporter_id).first()
+    if not reporter:
+        raise HTTPException(status_code=404, detail="Reporter not found")
+
+    # Parse occurrence time
+    try:
+        occurrence_time = (
+            datetime.strptime(payload.occurrence_time, "%d/%m/%Y %H:%M")
+            if payload.occurrence_time else datetime.utcnow()
+        )
+    except Exception:
+        occurrence_time = datetime.utcnow()
+
+    new_report = models.CrimeReport(
+        reporter_id=payload.reporter_id,
+        crime_type_id=payload.crime_type_id,
+        location_id=payload.area_id,
+        description=payload.description,
+        occurrence_time=occurrence_time,
+        image_1=(payload.imageUrls[0] if len(payload.imageUrls) > 0 else None),
+        image_2=(payload.imageUrls[1] if len(payload.imageUrls) > 1 else None)
+    )
+
+    db.add(new_report)
+    db.commit()
+    db.refresh(new_report)
+
+    return {
+        "status": "ok",
+        "report_id": new_report.report_id,
+        "message": "Report submitted successfully",
+        "date_reported": new_report.date_reported
+    }
+
+
+# -------------------------
+# Upload media for reports (used by Android when sending images)
+# -------------------------
+@app.post("/api/reports/upload")
+async def upload_media(file: UploadFile = File(...)):
+    """Handles image/video uploads from the mobile app."""
+    file_ext = os.path.splitext(file.filename)[1]
+    filename = f"{uuid4().hex}{file_ext}"
+    file_path = os.path.join(UPLOAD_DIR, filename)
+
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+
+    return {"filename": filename, "url": f"/uploads/{filename}"}
+
+@app.get("/api/crime-types")
+async def get_crime_types(db: Session = Depends(db_session.get_db)):
+    """Return all available crime types for dropdowns."""
+    types = db.query(models.CrimeType).all()
+    return [{"id": t.crime_type_id, "name": t.name, "description": t.description} for t in types]
+
+@app.get("/api/locations")
+async def get_locations(db: Session = Depends(db_session.get_db)):
+    locs = db.query(models.Location).all()
+    return [{"id": l.location_id, "area": l.area, "latitude": l.latitude, "longitude": l.longitude} for l in locs]
+
+@app.post("/api/reports/upload")
+async def upload_media(file: UploadFile = File(...)):
+    file_path = os.path.join(UPLOAD_DIR, file.filename)
+    with open(file_path, "wb") as f:
+        f.write(await file.read())
+    return {"filename": file.filename, "url": f"/uploads/{file.filename}"}
+
+app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
 # External Organization Routes
 @app.get("/org/login", response_class=HTMLResponse)
@@ -252,6 +359,44 @@ async def org_login(request: Request, org_id: str = Form(...), password: str = F
     return response
 
 
+# -------------------------
+# Upload file for a report (image/video)
+# -------------------------
+@app.post("/api/reports/{report_id}/addons")
+async def api_upload_report_addon(report_id: int, file: UploadFile = File(...), db: Session = Depends(db_session.get_db)):
+    """
+    Multipart upload:
+      - file: binary file (image/video)
+    Response:
+      { "status": "ok", "addon_id": 1, "file_path": "..." }
+    """
+    # verify report exists
+    rpt = db.query(models.Report).filter(models.Report.report_id == report_id).first()
+    if not rpt:
+        raise HTTPException(status_code=404, detail="report not found")
+
+    # simple validation for file type (image/video) based on content type
+    content_type = file.content_type or ""
+    if "image" in content_type:
+        file_type = "image"
+    elif "video" in content_type:
+        file_type = "video"
+    else:
+        # default to image — or reject
+        raise HTTPException(status_code=400, detail="file must be image or video")
+
+    # save file on disk
+    ext = os.path.splitext(file.filename)[1] or (".jpg" if file_type == "image" else ".mp4")
+    filename = f"{uuid4().hex}{ext}"
+    dest_path = os.path.join(UPLOAD_DIR, filename)
+
+    with open(dest_path, "wb") as f:
+        content = await file.read()
+        f.write(content)
+    size = os.path.getsize(dest_path)
+
+    addon = crud_reports.add_report_addon(db=db, report_id=report_id, file_path=dest_path, file_type=file_type, file_size=size)
+    return {"status": "ok", "addon_id": addon.addon_id, "file_path": addon.file_path}
 
 
 @app.get("/org/dashboard", response_class=HTMLResponse)

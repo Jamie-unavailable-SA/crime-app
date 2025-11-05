@@ -9,5 +9,7 @@ data class ReportRequest(
     @SerializedName("area_id") val areaId: Int,
     @SerializedName("report_type") val reportType: String,
     val latitude: Double?,
-    val longitude: Double?
+    val longitude: Double?,
+    @SerializedName("image_urls") val imageUrls: List<String>?,
+    @SerializedName("occurrence_time") val occurrenceTime: String?
 )

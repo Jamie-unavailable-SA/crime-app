@@ -1,4 +1,6 @@
 package com.example.crimewatch.data.models
 
-class AddonResponse {
-}
+data class AddonResponse(
+    val status: String,
+    val message: String
+)

@@ -1,15 +1,14 @@
-from sqlalchemy import Column, Integer, String, DateTime, func
-from sqlalchemy.orm import declarative_base
-
+from sqlalchemy import Column, Integer, String, DateTime, ForeignKey, func
+from sqlalchemy.orm import declarative_base, relationship
 
 Base = declarative_base()
 
 
-
-
+# ----------------------------
+# Admins Table
+# ----------------------------
 class Admin(Base):
     __tablename__ = "admins"
-
 
     admin_id = Column(Integer, primary_key=True, autoincrement=True)
     password = Column(String(255), nullable=False)
@@ -17,11 +16,11 @@ class Admin(Base):
     last_login = Column(DateTime, nullable=True)
 
 
-
-
+# ----------------------------
+# External Organizations Table
+# ----------------------------
 class ExternalOrg(Base):
     __tablename__ = "external_orgs"
-
 
     org_id = Column(Integer, primary_key=True, autoincrement=True)
     org_name = Column(String(200), nullable=False)
@@ -33,11 +32,11 @@ class ExternalOrg(Base):
     last_login = Column(DateTime, nullable=True)
 
 
-
-
+# ----------------------------
+# Reporter Table
+# ----------------------------
 class Reporter(Base):
     __tablename__ = "reporters"
-
 
     reporter_id = Column(Integer, primary_key=True, autoincrement=True)
     alias = Column(String(100), nullable=False)
@@ -49,12 +48,15 @@ class Reporter(Base):
     date_joined = Column(DateTime, server_default=func.now())
     last_login = Column(DateTime, nullable=True)
 
+    # Relationship to reports
+    reports = relationship("Report", back_populates="reporter")
 
 
-
+# ----------------------------
+# Session Table
+# ----------------------------
 class Session(Base):
     __tablename__ = "sessions"
-
 
     session_id = Column(Integer, primary_key=True, autoincrement=True)
     user_type = Column(String(50), nullable=False)
@@ -62,3 +64,60 @@ class Session(Base):
     token = Column(String(255), nullable=False, unique=True)
     expires_at = Column(DateTime, nullable=False)
     created_at = Column(DateTime, server_default=func.now())
+
+
+# ----------------------------
+# Crime Types Table
+# ----------------------------
+class CrimeType(Base):
+    __tablename__ = "crime_types"
+
+    crime_type_id = Column(Integer, primary_key=True, autoincrement=True)
+    name = Column(String(100), nullable=False, unique=True)
+    description = Column(String(255), nullable=True)
+    date_added = Column(DateTime, server_default=func.now())
+
+    # Relationship to reports
+    reports = relationship("Report", back_populates="crime_type")
+
+
+# ----------------------------
+# Locations Table
+# ----------------------------
+class Location(Base):
+    __tablename__ = "locations"
+
+    location_id = Column(Integer, primary_key=True, autoincrement=True)
+    area = Column(String(200), nullable=False)  # main area name (e.g., Westlands)
+    sub_area = Column(String(200), nullable=True)  # finer detail (e.g., Parklands)
+    latitude = Column(String(50), nullable=False)
+    longitude = Column(String(50), nullable=False)
+    description = Column(String(255), nullable=True)
+
+    # Relationship to reports
+    reports = relationship("Report", back_populates="location")
+
+
+# ----------------------------
+# Crime Reports Table
+# ----------------------------
+# in app/models/sqlalchemy_models.py
+class Report(Base):
+    __tablename__ = "crime_reports"
+
+    report_id = Column(Integer, primary_key=True, autoincrement=True)
+    reporter_id = Column(Integer, ForeignKey("reporters.reporter_id"), nullable=False)
+    crime_type_id = Column(Integer, ForeignKey("crime_types.crime_type_id"), nullable=False)
+    location_id = Column(Integer, ForeignKey("locations.location_id"), nullable=False)
+    description = Column(String(500), nullable=False)
+    occurrence_time = Column(DateTime, nullable=False)
+    image_1 = Column(String(255), nullable=True)
+    image_2 = Column(String(255), nullable=True)
+    date_reported = Column(DateTime, server_default=func.now())
+
+    reporter = relationship("Reporter", back_populates="reports")
+    crime_type = relationship("CrimeType", back_populates="reports")
+    location = relationship("Location", back_populates="reports")
+
+
+    

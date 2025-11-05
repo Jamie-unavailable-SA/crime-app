@@ -8,7 +8,17 @@ data class CrimeType(
     val description: String?
 )
 
-interface CrimeTypeApiService {
+data class Location(
+    val id: Int,
+    val area: String,
+    val latitude: Double?,
+    val longitude: Double?
+)
+
+interface CrimeApiService {
     @GET("api/crime-types")
     suspend fun getCrimeTypes(): List<CrimeType>
+
+    @GET("api/locations")
+    suspend fun getLocations(): List<Location>
 }

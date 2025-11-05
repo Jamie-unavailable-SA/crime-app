@@ -1,16 +1,24 @@
 package com.example.crimewatch.network
 
+import com.example.crimewatch.data.models.CrimeType
+import com.example.crimewatch.data.models.Location
 import com.example.crimewatch.data.models.LoginRequest
 import com.example.crimewatch.data.models.LoginResponse
 import com.example.crimewatch.data.models.RegisterRequest
 import com.example.crimewatch.data.models.RegisterResponse
+import com.example.crimewatch.data.models.ReportRequest
+import com.example.crimewatch.data.models.ReportResponse
 import com.example.crimewatch.data.models.UpdateProfileRequest
+import com.example.crimewatch.data.models.UploadResponse
 import com.example.crimewatch.data.models.User
+import okhttp3.MultipartBody
 import retrofit2.Response
 import retrofit2.http.Body
 import retrofit2.http.GET
+import retrofit2.http.Multipart
 import retrofit2.http.POST
 import retrofit2.http.PUT
+import retrofit2.http.Part
 import retrofit2.http.Path
 
 interface ApiService {
@@ -30,4 +38,18 @@ interface ApiService {
         @Path("reporter_id") reporterId: Int,
         @Body request: UpdateProfileRequest
     ): Response<User>
+
+    @POST("api/reports")
+    suspend fun submitReport(@Body request: ReportRequest): Response<ReportResponse>
+
+    // New endpoints for crime types and locations
+    @GET("api/crime-types")
+    suspend fun getCrimeTypes(): Response<List<CrimeType>>
+
+    @GET("api/locations")
+    suspend fun getLocations(): Response<List<Location>>
+
+    @Multipart
+    @POST("api/upload")
+    suspend fun uploadFile(@Part file: MultipartBody.Part): Response<UploadResponse>
 }
