@@ -1,0 +1,111 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Organisation Dashboard</title>
+    <style>
+        body {
+            font-family: "Segoe UI", sans-serif;
+            background: #f6f8fa;
+            margin: 0;
+        }
+        .topbar {
+            background: #24292f;
+            color: white;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 18px 40px;
+        }
+        .topbar h1 { margin: 0; font-size: 22px; }
+        .logout-btn {
+            background: #e5534b; color: white; border: none;
+            padding: 10px 22px; border-radius: 6px; cursor: pointer;
+            font-size: 16px; text-decoration: none; transition: background 0.2s;
+        }
+        .logout-btn:hover { background: #c82333; }
+        .container {
+            max-width: 1000px; margin: 30px auto; background: white;
+            border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+            padding: 40px 50px;
+        }
+        form {
+            display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 25px;
+        }
+        form input, form select {
+            padding: 10px; font-size: 14px; border: 1px solid #ccc;
+            border-radius: 6px; flex: 1;
+        }
+        form button {
+            background: #007BFF; color: white; border: none;
+            padding: 10px 20px; border-radius: 6px; cursor: pointer;
+        }
+        form button:hover { background: #0056b3; }
+        table {
+            width: 100%; border-collapse: collapse; margin-top: 15px;
+            background: white; border-radius: 6px; overflow: hidden;
+            box-shadow: 0 2px 6px rgba(0,0,0,0.1);
+        }
+        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th { background: #e1e4e8; }
+        tr:hover { background: #f0f0f0; }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <h1>Welcome, {{ org_name }}</h1>
+        <a class="logout-btn" href="/org/logout">Logout</a>
+    </div>
+
+
+    <div class="container">
+        <h2>Search Reports</h2>
+        <form method="POST" action="/org/dashboard">
+            <select name="type">
+                <option value="">-- Select Crime Type --</option>
+                {% for ctype in crime_types %}
+                    <option value="{{ ctype.name }}">{{ ctype.name }}</option>
+                {% endfor %}
+            </select>
+            <input type="date" name="date_from" placeholder="From">
+            <input type="date" name="date_to" placeholder="To">
+            <button type="submit">Search</button>
+        </form>
+
+
+        <h2>Submitted Reports</h2>
+        <table>
+            <thead>
+                <tr>
+                    <th>Report ID</th>
+                    <th>Crime Type</th>
+                    <th>Reporter</th>
+                    <th>Description</th>
+                    <th>Location</th>
+                    <th>Date Reported</th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in reports %}
+                <tr>
+                    <td>{{ r.id }}</td>
+                    <td>{{ r.type }}</td>
+                    <td>{{ r.reporter }}</td>
+                    <td>{{ r.description }}</td>
+                    <td>{{ r.location }}</td>
+                    <td>{{ r.date }}</td>
+                    <td>
+                        <a href="/api/reports/{{ r.id }}">View</a> |
+                        <a href="/uploads/{{ r.id }}">Files</a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" style="text-align:center;">No reports found</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</body>
+</html>

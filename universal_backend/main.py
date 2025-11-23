@@ -67,7 +67,7 @@ async def landing_page(request: Request):
 # External Organization registration
 @app.get("/register", response_class=HTMLResponse)
 async def register_page(request: Request):
-    return templates.TemplateResponse("external_org_register.html", {"request": request})
+    return templates.TemplateResponse("org_register.html", {"request": request})
 
 @app.post("/register")
 async def register_organization(
@@ -82,7 +82,7 @@ async def register_organization(
 ):
     if password != confirm_password:
         return templates.TemplateResponse(
-            "register.html",
+            "org_register.html",
             {"request": request, "error": "Passwords do not match"}
         )
     # ensure tables exist
@@ -90,7 +90,7 @@ async def register_organization(
     existing = crud_auth.get_org_by_email(db, contact_email)
     if existing:
         return templates.TemplateResponse(
-            "external_org_register.html",
+            "org_register.html",
             {"request": request, "error": "An organization with that email already exists"}
         )
     org = crud_auth.create_org(db, org_name, contact_person, contact_email, contact_phone, password)
@@ -308,7 +308,7 @@ app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 # External Organization Routes
 @app.get("/org/login", response_class=HTMLResponse)
 async def org_login_page(request: Request):
-    return templates.TemplateResponse("external_org_login.html", {"request": request})
+    return templates.TemplateResponse("org_login.html", {"request": request})
 
 @app.post("/org/login")
 async def org_login(request: Request, org_id: str = Form(...), password: str = Form(...), db: Session = Depends(db_session.get_db)):
@@ -316,7 +316,7 @@ async def org_login(request: Request, org_id: str = Form(...), password: str = F
     org = crud_auth.authenticate_org(db, org_id, password)
     if not org:
         # pass back an error message to the template
-        return templates.TemplateResponse("external_org_login.html", {"request": request, "error": "Invalid credentials"})
+        return templates.TemplateResponse("org_login.html", {"request": request, "error": "Invalid credentials"})
     # successful login: create a session and set a secure cookie, then redirect to dashboard
     sess = crud_auth.create_session(db, user_type="external_org", user_id=org.org_id)
     response = RedirectResponse(url="/org/dashboard", status_code=303)
@@ -370,7 +370,7 @@ async def org_dashboard(request: Request, db: Session = Depends(db_session.get_d
     crime_types = db.query(models.CrimeType).all()
     reports = []
     return templates.TemplateResponse(
-        "external_org_dashboard.html",
+        "org_dashboard.html",
         {
             "request": request,
             "org_name": org.org_name if org else None,
@@ -409,7 +409,7 @@ async def org_dashboard(request: Request, db: Session = Depends(db_session.get_d
             "location": getattr(r.location, "area", "N/A") if hasattr(r, "location") else "N/A",
         })
     return templates.TemplateResponse(
-        "external_org_dashboard.html",
+        "org_dashboard.html",
         {
             "request": request,
             "org_name": org.org_name if org else None,
@@ -459,7 +459,7 @@ async def org_dashboard_search(
             "location": getattr(r.location, "area", "N/A") if hasattr(r, "location") else "N/A",
         })
     return templates.TemplateResponse(
-        "external_org_dashboard.html",
+        "org_dashboard.html",
         {
             "request": request,
             "org_name": org.org_name if org else "Unknown Organization",

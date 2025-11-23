@@ -1,0 +1,209 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>CrimeWatch Kenya</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <style>
+        body {
+            background: #f6f8fa;
+            font-family: "Segoe UI", Arial, sans-serif;
+            margin: 0;
+            color: #24292f;
+        }
+        header, footer {
+            background: #fff;
+            border-bottom: 1px solid #e1e4e8;
+            padding: 20px 0;
+        }
+        .container {
+            max-width: 1100px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+        .nav-btn {
+            display: inline-block;
+            background: #24292f;
+            color: #fff;
+            border: none;
+            border-radius: 6px;
+            padding: 12px 28px;
+            font-size: 16px;
+            font-weight: 600;
+            text-decoration: none;
+            margin: 0 8px;
+            transition: background 0.2s;
+        }
+        .nav-btn.outline {
+            background: #fff;
+            color: #24292f;
+            border: 2px solid #24292f;
+        }
+        .nav-btn:hover {
+            background: #444d56;
+            color: #fff;
+        }
+        main {
+            padding: 48px 0 0 0;
+        }
+        h1, h2, h3 {
+            font-weight: bold;
+        }
+        .features, .how-it-works {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 32px;
+            justify-content: center;
+            margin: 48px 0;
+        }
+        .feature-card, .how-card {
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 8px rgba(36,41,47,0.07);
+            padding: 32px;
+            flex: 1 1 220px;
+            min-width: 220px;
+            max-width: 320px;
+            text-align: center;
+        }
+        .feature-icon {
+            font-size: 32px;
+            margin-bottom: 16px;
+            color: #007BFF;
+        }
+        .footer-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 32px;
+            justify-content: space-between;
+            margin-bottom: 24px;
+        }
+        .footer-section {
+            flex: 1 1 220px;
+            min-width: 220px;
+        }
+        .footer-section h4 {
+            margin-bottom: 8px;
+        }
+        .footer-bottom {
+            text-align: center;
+            color: #888;
+            font-size: 14px;
+            border-top: 1px solid #e1e4e8;
+            padding-top: 16px;
+        }
+        @media (max-width: 700px) {
+            .features, .how-it-works, .footer-grid {
+                flex-direction: column;
+                gap: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div class="container" style="display:flex;justify-content:space-between;align-items:center;">
+            <div style="display:flex;align-items:center;gap:12px;">
+                <span class="feature-icon">&#128737;</span>
+                <h1 style="margin:0;">CrimeWatch Kenya</h1>
+            </div>
+            <div>
+                <a href="/org/login" class="nav-btn outline">Organisation Login</a>
+                <a href="/register" class="nav-btn">Register</a>
+            </div>
+        </div>
+    </header>
+    {% if flash %}
+    <div class="container" style="margin-top:16px;">
+        <div style="max-width:1100px;margin:0 auto;padding:12px 24px;border-radius:8px;background:#e6ffed;color:#064e3b;border:1px solid #b7f5c6;">
+            {{ flash }}
+        </div>
+    </div>
+    {% endif %}
+    <main>
+        <div class="container" style="text-align:center;">
+            <h2 style="font-size:2.5em;margin-bottom:16px;">Report Crimes Anonymously,<br>Make Your Community Safer</h2>
+            <p style="font-size:1.2em;color:#555;max-width:600px;margin:0 auto 32px;">
+                A mobile-based crime reporting and mapping system designed for urban Kenya.
+                Help law enforcement track crime patterns while maintaining your anonymity.
+            </p>
+            <a href="/register" class="nav-btn" style="margin-bottom:8px;">Get Started</a>
+            <a href="/org/login" class="nav-btn outline">Law Enforcement Access</a>
+        </div>
+        <section>
+            <h3 style="text-align:center;margin:48px 0 24px 0;">Key Features</h3>
+            <div class="features container">
+                <div class="feature-card">
+                    <div class="feature-icon">&#128100;</div>
+                    <h4>Anonymous Reporting</h4>
+                    <p>Report crimes using an alias to protect your identity while contributing to community safety.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128205;</div>
+                    <h4>Crime Heatmaps</h4>
+                    <p>Visualize crime patterns across different locations with interactive heatmaps.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128221;</div>
+                    <h4>Easy Reporting</h4>
+                    <p>Submit detailed crime reports with location, time, description, and images.</p>
+                </div>
+                <div class="feature-card">
+                    <div class="feature-icon">&#128101;</div>
+                    <h4>Law Enforcement Access</h4>
+                    <p>Authorized organizations can access aggregated data for crime prevention planning.</p>
+                </div>
+            </div>
+        </section>
+        <section>
+            <h3 style="text-align:center;margin:48px 0 24px 0;">How It Works</h3>
+            <div class="how-it-works container">
+                <div class="how-card">
+                    <div class="feature-icon">1</div>
+                    <h4>Register</h4>
+                    <p>Create an account with your details and choose an anonymous alias.</p>
+                </div>
+                <div class="how-card">
+                    <div class="feature-icon">2</div>
+                    <h4>Report</h4>
+                    <p>Submit crime reports with location, type, time, and supporting evidence.</p>
+                </div>
+                <div class="how-card">
+                    <div class="feature-icon">3</div>
+                    <h4>Track</h4>
+                    <p>View crime heatmaps and stay informed about safety in your area.</p>
+                </div>
+            </div>
+        </section>
+        <section>
+            <div class="container" style="text-align:center;margin:48px 0;">
+                <h3 style="margin-bottom:16px;">Ready to Make a Difference?</h3>
+                <p style="font-size:1.2em;color:#555;margin-bottom:24px;">
+                    Join thousands of urban Kenyans helping to create safer communities.
+                </p>
+                <a href="/register" class="nav-btn">Register Now</a>
+            </div>
+        </section>
+    </main>
+    <footer>
+        <div class="container">
+            <div class="footer-grid">
+                <div class="footer-section">
+                    <h4>Contact Information</h4>
+                    <p>Emergency Hotline: 999, 911, 112</p>
+                    <p>Email: support@crimewatch.co.ke</p>
+                    <p>Phone: +254 700 000 000</p>
+                </div>
+                <div class="footer-section">
+                    <h4>System Access</h4>
+                    <a href="/admin/login" class="nav-btn outline" style="font-size:14px;padding:8px 18px;">Admin Login</a>
+                </div>
+            </div>
+            <div class="footer-bottom">
+                <p>© 2025 CrimeWatch Kenya. All rights reserved.</p>
+                <p>In case of emergency, always call 999, 911, or 112 first.</p>
+            </div>
+        </div>
+    </footer>
+</body>
+</html>
