@@ -1,4 +1,6 @@
 package com.example.crimewatch.data.models
 
-class Location {
-}
+data class Location(
+    val id: Int,
+    val area: String
+)

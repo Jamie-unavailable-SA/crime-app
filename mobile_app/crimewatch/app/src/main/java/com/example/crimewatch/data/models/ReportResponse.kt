@@ -1,4 +1,8 @@
 package com.example.crimewatch.data.models
 
-class ReportResponse {
-}
+import com.google.gson.annotations.SerializedName
+
+data class ReportResponse(
+    val status: String,
+    @SerializedName("report_id") val reportId: Int
+)

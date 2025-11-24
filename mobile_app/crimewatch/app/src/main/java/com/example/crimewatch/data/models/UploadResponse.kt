@@ -1,4 +1,5 @@
 package com.example.crimewatch.data.models
 
-class UploadResponse {
-}
+data class UploadResponse(
+    val url: String
+)
