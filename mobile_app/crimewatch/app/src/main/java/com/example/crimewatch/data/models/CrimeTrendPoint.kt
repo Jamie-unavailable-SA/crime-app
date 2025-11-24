@@ -1,4 +1,6 @@
 package com.example.crimewatch.data.models
 
-class CrimeTrendPoint {
-}
+data class CrimeTrendPoint(
+    val date: String,
+    val count: Int
+)

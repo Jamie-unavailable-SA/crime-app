@@ -11,12 +11,15 @@ import com.example.crimewatch.ui.screens.ProfileScreen
 import com.example.crimewatch.ui.screens.RegisterScreen
 import com.example.crimewatch.ui.screens.ReportScreen
 import com.example.crimewatch.ui.screens.SettingsScreen
+import androidx.compose.ui.Modifier
+
 
 @Composable
-fun AppGraph(navController: NavHostController) {
+fun AppGraph(navController: NavHostController, modifier: Modifier = Modifier) {
     NavHost(
         navController = navController,
-        startDestination = "landing"
+        startDestination = "landing",
+        modifier = Modifier
     ) {
         composable("landing") { LandingScreen(navController) }
         composable("login") { LoginScreen(navController) }

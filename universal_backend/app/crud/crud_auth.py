@@ -1,5 +1,5 @@
 from sqlalchemy.orm import Session
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 import secrets
 
 from ..models.sqlalchemy_models import ExternalOrg, Admin, Reporter, Session as DBSession
@@ -69,8 +69,10 @@ def get_reporter_by_id(db: Session, reporter_id: int):
     """Fetch a reporter record by its ID."""
     return db.query(Reporter).filter(Reporter.reporter_id == reporter_id).first()
 
-def update_reporter(db: Session, reporter, f_name=None, l_name=None, email=None, phone=None):
+def update_reporter(db: Session, reporter, alias=None, f_name=None, l_name=None, email=None, phone=None):
     """Update reporter details and save changes."""
+    if alias is not None:
+        reporter.alias = alias
     if f_name is not None:
         reporter.f_name = f_name
     if l_name is not None:
@@ -79,6 +81,7 @@ def update_reporter(db: Session, reporter, f_name=None, l_name=None, email=None,
         reporter.email = email
     if phone is not None:
         reporter.phone = phone
+    db.add(reporter)   
     db.commit()
     db.refresh(reporter)
     return reporter
@@ -91,6 +94,10 @@ def authenticate_reporter(db: Session, identifier: str, password: str):
     else:
         rep = db.query(Reporter).filter(Reporter.alias == identifier).first()
     if rep and verify_password(password, rep.password):
+        rep.last_login = datetime.now()
+        db.add(rep)
+        db.commit()
+        db.refresh(rep)
         return rep
     return None
 

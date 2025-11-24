@@ -17,7 +17,7 @@ import kotlinx.coroutines.launch
 class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     private val sessionManager = SessionManager(application)
-    private val apiService: ApiService = RetrofitInstance.createApiService(application)
+    private val apiService: ApiService = RetrofitInstance.apiService
 
     private val _loginState = MutableStateFlow<LoginResult>(LoginResult.Empty)
     val loginState: StateFlow<LoginResult> = _loginState
@@ -30,22 +30,44 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
 
     fun login(identifier: String, password: String) {
         viewModelScope.launch {
+
+            // Prevent empty input crash
+            if (identifier.isBlank() || password.isBlank()) {
+                _loginState.value = LoginResult.Error("Please fill in all fields.")
+                return@launch
+            }
+
             _loginState.value = LoginResult.Loading
+
             try {
                 val payload = mapOf("identifier" to identifier, "password" to password)
                 val response = apiService.login(payload)
-                if (response.isSuccessful && response.body() != null) {
-                    val body = response.body()!!
-                    sessionManager.saveSession(body.reporterId)
-                    _loginState.value = LoginResult.Success(body)
-                } else {
-                    _loginState.value = LoginResult.Error("Login failed: ${response.code()} ${response.message()}")
+
+                // If backend returns HTTP error (400, 422, etc)
+                if (!response.isSuccessful) {
+                    _loginState.value = LoginResult.Error("Invalid username or password.")
+                    return@launch
                 }
+
+                val body = response.body()
+
+                // If backend returns "error" OR missing status
+                if (body == null || body.error != null || body.status != "ok") {
+                    _loginState.value = LoginResult.Error("Invalid username or password.")
+                    return@launch
+                }
+
+                // Save session safely
+                sessionManager.saveSession(body.reporterId ?: -1)
+
+                _loginState.value = LoginResult.Success(body)
+
             } catch (e: Exception) {
-                _loginState.value = LoginResult.Error(e.message ?: "An error occurred during login")
+                _loginState.value = LoginResult.Error("Network error: ${e.message}")
             }
         }
     }
+
 
     fun register(alias: String, password: String, email: String? = null, phone: String? = null) {
         viewModelScope.launch {
@@ -92,13 +114,13 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         }
     }
 
-    fun updateProfile(alias: String, firstName: String?, lastName: String?, email: String?, phone: String?) {
+    fun updateProfile(alias: String, f_name: String?, l_name: String?, email: String?, phone: String?) {
         viewModelScope.launch {
             _userProfileState.value = UserProfileResult.Loading
             try {
                 val reporterId = sessionManager.getReporterId()
                 if (reporterId != -1) {
-                    val response = apiService.updateProfile(reporterId, UpdateProfileRequest(alias, firstName, lastName, email, phone))
+                    val response = apiService.updateProfile(reporterId, UpdateProfileRequest(alias, f_name, l_name, email, phone))
                     if (response.isSuccessful && response.body() != null) {
                         _userProfileState.value = UserProfileResult.Success(response.body()!!)
                     } else {

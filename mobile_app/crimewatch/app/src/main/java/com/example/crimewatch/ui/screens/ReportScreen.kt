@@ -7,38 +7,19 @@ import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.Image
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.CircularProgressIndicator
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateListOf
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -48,92 +29,142 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.viewmodel.compose.viewModel
 import coil.compose.rememberAsyncImagePainter
 import com.example.crimewatch.R
+import com.example.crimewatch.data.models.CrimeType
+import com.example.crimewatch.data.models.Location
 import com.example.crimewatch.viewmodel.ReportViewModel
 import java.util.Calendar
 import java.util.Locale
 
+// ---------------------------------------------------------
+// 🔹 Reusable Scrollable Selection List Component
+// ---------------------------------------------------------
+@Composable
+fun <T> SelectionList(
+    title: String,
+    items: List<T>,
+    selectedItem: T?,
+    labelSelector: (T) -> String,
+    onSelected: (T) -> Unit
+) {
+    Column(modifier = Modifier.fillMaxWidth()) {
+        Text(
+            text = title,
+            style = MaterialTheme.typography.bodyMedium,
+            modifier = Modifier.padding(vertical = 6.dp)
+        )
+
+        Card(
+            shape = RoundedCornerShape(8.dp),
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(220.dp)
+        ) {
+            LazyColumn {
+                items(items) { item ->
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { onSelected(item) }
+                            .padding(12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            text = labelSelector(item),
+                            modifier = Modifier.weight(1f)
+                        )
+
+                        if (selectedItem == item) {
+                            Icon(
+                                imageVector = Icons.Default.Check,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+                    HorizontalDivider()
+                }
+            }
+        }
+    }
+}
+
+// ---------------------------------------------------------
+// 🔹 Main ReportScreen
+// ---------------------------------------------------------
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ReportScreen(reportViewModel: ReportViewModel = viewModel()) {
+
     val context = LocalContext.current
-    var selectedCrimeType by remember { mutableStateOf<com.example.crimewatch.data.models.CrimeType?>(null) }
-    var selectedLocation by remember { mutableStateOf<com.example.crimewatch.data.models.Location?>(null) }
+
+    var selectedCrimeType by remember { mutableStateOf<CrimeType?>(null) }
+    var selectedLocation by remember { mutableStateOf<Location?>(null) }
     var occurrenceDate by remember { mutableStateOf("") }
     var occurrenceTime by remember { mutableStateOf("") }
     var description by remember { mutableStateOf("") }
+
     val crimeTypes by reportViewModel.crimeTypes.collectAsState()
     val locations by reportViewModel.locations.collectAsState()
     val imageUris = remember { mutableStateListOf<Uri>() }
+
     val launcher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.GetMultipleContents()
     ) { uris ->
         imageUris.clear()
         imageUris.addAll(uris)
     }
+
     val reportState by reportViewModel.reportState.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
-            .padding(16.dp),
+            .padding(16.dp)
+            .verticalScroll(rememberScrollState()),
         verticalArrangement = Arrangement.Top,
         horizontalAlignment = Alignment.CenterHorizontally
     ) {
         Text("Report a Crime", style = MaterialTheme.typography.headlineSmall)
         Spacer(Modifier.height(20.dp))
-        // Crime Type Dropdown
-        var expandedCrimeType by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(expanded = expandedCrimeType, onExpandedChange = { expandedCrimeType = !expandedCrimeType }) {
-            OutlinedTextField(
-                value = selectedCrimeType?.name ?: "",
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Crime Type") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedCrimeType) },
-                modifier = Modifier.fillMaxWidth()
-            )
-            ExposedDropdownMenu(expanded = expandedCrimeType, onDismissRequest = { expandedCrimeType = false }) {
-                crimeTypes.forEach { type ->
-                    DropdownMenuItem(text = { Text(type.name) }, onClick = {
-                        selectedCrimeType = type
-                        expandedCrimeType = false
-                    })
-                }
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        // Location Dropdown
-        var expandedLocation by remember { mutableStateOf(false) }
-        ExposedDropdownMenuBox(expanded = expandedLocation, onExpandedChange = { expandedLocation = !expandedLocation }) {
-            OutlinedTextField(
-                value = selectedLocation?.area ?: "",
-                onValueChange = {},
-                readOnly = true,
-                label = { Text("Location") },
-                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedLocation) },
-                modifier = Modifier.fillMaxWidth()
-            )
-            ExposedDropdownMenu(expanded = expandedLocation, onDismissRequest = { expandedLocation = false }) {
-                locations.forEach { loc ->
-                    DropdownMenuItem(text = { Text(loc.area) }, onClick = {
-                        selectedLocation = loc
-                        expandedLocation = false
-                    })
-                }
-            }
-        }
-        Spacer(Modifier.height(10.dp))
-        // Occurrence Date Picker
+
+        // ---------------------------------------------------------
+        // 🔥 Crime Type Selection List
+        // ---------------------------------------------------------
+        SelectionList(
+            title = "Crime Type",
+            items = crimeTypes,
+            selectedItem = selectedCrimeType,
+            labelSelector = { it.name },
+            onSelected = { selectedCrimeType = it }
+        )
+        Spacer(Modifier.height(16.dp))
+
+        // ---------------------------------------------------------
+        // 🔥 Location Selection List
+        // ---------------------------------------------------------
+        SelectionList(
+            title = "Location",
+            items = locations,
+            selectedItem = selectedLocation,
+            labelSelector = { it.area },
+            onSelected = { selectedLocation = it }
+        )
+        Spacer(Modifier.height(16.dp))
+
+        // ---------------------------------------------------------
+        // 📅 Date Picker
+        // ---------------------------------------------------------
         val calendar = Calendar.getInstance()
-        val year = calendar.get(Calendar.YEAR)
-        val month = calendar.get(Calendar.MONTH)
-        val day = calendar.get(Calendar.DAY_OF_MONTH)
         val datePickerDialog = DatePickerDialog(
             context,
-            { _, selYear, selMonth, selDay ->
-                occurrenceDate = "$selDay/${selMonth + 1}/$selYear"
+            { _, year, month, day ->
+                occurrenceDate = "$day/${month + 1}/$year"
             },
-            year, month, day
+            calendar.get(Calendar.YEAR),
+            calendar.get(Calendar.MONTH),
+            calendar.get(Calendar.DAY_OF_MONTH)
         )
+
         OutlinedTextField(
             value = occurrenceDate,
             onValueChange = {},
@@ -141,22 +172,27 @@ fun ReportScreen(reportViewModel: ReportViewModel = viewModel()) {
             readOnly = true,
             trailingIcon = {
                 IconButton(onClick = { datePickerDialog.show() }) {
-                    Icon(imageVector = Icons.Default.DateRange, contentDescription = "Select Date")
+                    Icon(Icons.Filled.DateRange, contentDescription = "Select Date")
                 }
             },
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(Modifier.height(10.dp))
-        // Occurrence Time Picker
-        val hour = calendar.get(Calendar.HOUR_OF_DAY)
-        val minute = calendar.get(Calendar.MINUTE)
+
+        Spacer(Modifier.height(16.dp))
+
+        // ---------------------------------------------------------
+        // ⏰ Time Picker
+        // ---------------------------------------------------------
         val timePickerDialog = TimePickerDialog(
             context,
-            { _, selHour, selMinute ->
-                occurrenceTime = String.format(Locale.getDefault(), "%02d:%02d", selHour, selMinute)
+            { _, hour, minute ->
+                occurrenceTime = String.format(Locale.getDefault(), "%02d:%02d", hour, minute)
             },
-            hour, minute, true
+            calendar.get(Calendar.HOUR_OF_DAY),
+            calendar.get(Calendar.MINUTE),
+            true
         )
+
         OutlinedTextField(
             value = occurrenceTime,
             onValueChange = {},
@@ -164,13 +200,17 @@ fun ReportScreen(reportViewModel: ReportViewModel = viewModel()) {
             readOnly = true,
             trailingIcon = {
                 IconButton(onClick = { timePickerDialog.show() }) {
-                    Icon(painter = painterResource(id = R.drawable.ic_schedule), contentDescription = "Select Time")
+                    Icon(painterResource(id = R.drawable.ic_schedule), contentDescription = "Select Time")
                 }
             },
             modifier = Modifier.fillMaxWidth()
         )
-        Spacer(Modifier.height(10.dp))
-        // Description Field
+
+        Spacer(Modifier.height(16.dp))
+
+        // ---------------------------------------------------------
+        // ✍️ Description
+        // ---------------------------------------------------------
         OutlinedTextField(
             value = description,
             onValueChange = { description = it },
@@ -179,8 +219,12 @@ fun ReportScreen(reportViewModel: ReportViewModel = viewModel()) {
                 .fillMaxWidth()
                 .height(120.dp)
         )
-        Spacer(Modifier.height(10.dp))
-        // Scene Media
+
+        Spacer(Modifier.height(16.dp))
+
+        // ---------------------------------------------------------
+        // 📸 Scene Media
+        // ---------------------------------------------------------
         Text("Scene Media:")
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -189,34 +233,32 @@ fun ReportScreen(reportViewModel: ReportViewModel = viewModel()) {
             imageUris.forEach { uri ->
                 Image(
                     painter = rememberAsyncImagePainter(uri),
-                    contentDescription = "Selected Media",
+                    contentDescription = null,
                     modifier = Modifier.size(100.dp)
                 )
             }
             IconButton(onClick = { launcher.launch("*/*") }) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = "Add Media"
-                )
+                Icon(Icons.Default.Add, contentDescription = "Add Media")
             }
         }
+
         Spacer(Modifier.height(20.dp))
+
+        // ---------------------------------------------------------
+        // 🚀 Submit Button
+        // ---------------------------------------------------------
         Button(
             onClick = {
-                val fullOccurrenceTime = if (occurrenceDate.isNotBlank() && occurrenceTime.isNotBlank()) {
+                val fullTime = if (occurrenceDate.isNotBlank() && occurrenceTime.isNotBlank()) {
                     val parts = occurrenceDate.split("/")
-                    val day = parts[0].padStart(2, '0')
-                    val month = parts[1].padStart(2, '0')
-                    val year = parts[2]
-                    "$day/$month/$year $occurrenceTime"
-                } else {
-                    null
-                }
+                    "${parts[0].padStart(2, '0')}/${parts[1].padStart(2, '0')}/${parts[2]} $occurrenceTime"
+                } else null
+
                 reportViewModel.submitReport(
                     crimeTypeId = selectedCrimeType?.id,
                     description = description,
                     locationId = selectedLocation?.id,
-                    occurrenceTime = fullOccurrenceTime,
+                    occurrenceTime = fullTime,
                     imageUris = imageUris.toList()
                 )
             },
@@ -224,11 +266,16 @@ fun ReportScreen(reportViewModel: ReportViewModel = viewModel()) {
                 .fillMaxWidth()
                 .height(50.dp),
             shape = RoundedCornerShape(10.dp),
-            colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.primary)
+            colors = ButtonDefaults.buttonColors(MaterialTheme.colorScheme.primary)
         ) {
             Text("Submit", color = Color.White)
         }
+
         Spacer(Modifier.height(16.dp))
+
+        // ---------------------------------------------------------
+        // 📌 Report State Feedback
+        // ---------------------------------------------------------
         when (val state = reportState) {
             is ReportViewModel.ReportState.Loading -> CircularProgressIndicator()
             is ReportViewModel.ReportState.Success -> {
@@ -239,9 +286,10 @@ fun ReportScreen(reportViewModel: ReportViewModel = viewModel()) {
                 Text(state.message, color = Color.Red)
                 Toast.makeText(context, "Error: ${state.message}", Toast.LENGTH_SHORT).show()
             }
-            is ReportViewModel.ReportState.Empty -> {
-                // Do nothing
-            }
+            else -> {}
         }
+
+        // Add spacer for bottom navigation bar
+        Spacer(Modifier.height(80.dp))
     }
 }

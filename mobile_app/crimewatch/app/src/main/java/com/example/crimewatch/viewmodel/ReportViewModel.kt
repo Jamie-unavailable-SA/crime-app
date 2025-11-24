@@ -3,6 +3,7 @@ package com.example.crimewatch.viewmodel
 import android.app.Application
 import android.content.Context
 import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.crimewatch.data.SessionManager
@@ -24,8 +25,10 @@ import okhttp3.RequestBody.Companion.asRequestBody
 
 class ReportViewModel(application: Application) : AndroidViewModel(application) {
 
-    private val apiService: ApiService = RetrofitInstance.createApiService(application)
+    // Use unified API service
+    private val apiService: ApiService = RetrofitInstance.apiService
     private val sessionManager = SessionManager(application)
+
     private val context: Context
         get() = getApplication<Application>().applicationContext
 
@@ -48,10 +51,14 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 val response = apiService.getCrimeTypes()
                 if (response.isSuccessful) {
-                    _crimeTypes.value = response.body() ?: emptyList()
+                    response.body()?.let {
+                        _crimeTypes.value = it
+                    }
+                } else {
+                    Log.e("ReportViewModel", "Failed to fetch crime types: ${response.errorBody()?.string()}")
                 }
-            } catch (_: Exception) {
-                // Handle error
+            } catch (e: Exception) {
+                Log.e("ReportViewModel", "Exception while fetching crime types", e)
             }
         }
     }
@@ -61,10 +68,14 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
             try {
                 val response = apiService.getLocations()
                 if (response.isSuccessful) {
-                    _locations.value = response.body() ?: emptyList()
+                    response.body()?.let {
+                        _locations.value = it
+                    }
+                } else {
+                    Log.e("ReportViewModel", "Failed to fetch locations: ${response.errorBody()?.string()}")
                 }
-            } catch (_: Exception) {
-                // Handle error
+            } catch (e: Exception) {
+                Log.e("ReportViewModel", "Exception while fetching locations", e)
             }
         }
     }
@@ -77,8 +88,8 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
                     val requestFile = file.asRequestBody("image/*".toMediaTypeOrNull())
                     val body = MultipartBody.Part.createFormData("file", file.name, requestFile)
                     apiService.uploadReportAddon(reportId, body)
-                } catch (_: Exception) {
-                    // Handle individual upload failure if needed
+                } catch (e: Exception) {
+                    Log.e("ReportViewModel", "Exception while uploading file", e)
                 }
             }
         }.awaitAll()
@@ -121,7 +132,9 @@ class ReportViewModel(application: Application) : AndroidViewModel(application) 
                     }
                     _reportState.value = ReportState.Success(response.body()!!)
                 } else {
-                    _reportState.value = ReportState.Error("Failed to submit report: ${response.code()} - ${response.message()}")
+                    _reportState.value = ReportState.Error(
+                        "Failed to submit report: ${response.code()} - ${response.message()}"
+                    )
                 }
             } catch (e: Exception) {
                 _reportState.value = ReportState.Error(e.message ?: "An unknown error occurred.")

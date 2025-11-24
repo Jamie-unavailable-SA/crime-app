@@ -1,28 +1,16 @@
 package com.example.crimewatch.network
 
-import com.example.crimewatch.data.models.CrimeType
-import com.example.crimewatch.data.models.Location
-import com.example.crimewatch.data.models.LoginResponse
-import com.example.crimewatch.data.models.RegisterResponse
-import com.example.crimewatch.data.models.ReportResponse
-import com.example.crimewatch.data.models.UpdateProfileRequest
-import com.example.crimewatch.data.models.UploadResponse
-import com.example.crimewatch.data.models.User
+import com.example.crimewatch.data.models.*
 import okhttp3.MultipartBody
 import retrofit2.Response
-import retrofit2.http.Body
-import retrofit2.http.Field
-import retrofit2.http.FormUrlEncoded
-import retrofit2.http.GET
-import retrofit2.http.Multipart
-import retrofit2.http.POST
-import retrofit2.http.PUT
-import retrofit2.http.Part
-import retrofit2.http.Path
+import com.example.crimewatch.data.models.CrimeType
+import com.example.crimewatch.data.models.Location
+
+import retrofit2.http.*
 
 interface ApiService {
 
-    // Mobile reporter endpoints
+    // AUTH
     @POST("api/reporters/login")
     suspend fun login(@Body payload: Map<String, String>): Response<LoginResponse>
 
@@ -38,6 +26,7 @@ interface ApiService {
         @Body request: UpdateProfileRequest
     ): Response<User>
 
+    // REPORTS
     @FormUrlEncoded
     @POST("api/reports")
     suspend fun submitReport(
@@ -48,17 +37,37 @@ interface ApiService {
         @Field("description") description: String
     ): Response<ReportResponse>
 
-    // Endpoints for crime types and locations
-    @GET("api/crime-types")
-    suspend fun getCrimeTypes(): Response<List<CrimeType>>
-
-    @GET("api/locations")
-    suspend fun getLocations(): Response<List<Location>>
-
     @Multipart
     @POST("api/reports/{report_id}/addons")
     suspend fun uploadReportAddon(
         @Path("report_id") reportId: Int,
         @Part file: MultipartBody.Part
     ): Response<UploadResponse>
+
+    // DROPDOWNS
+    @GET("api/crime-types")
+    suspend fun getCrimeTypes(): Response<List<CrimeType>>
+
+    @GET("api/locations")
+    suspend fun getLocations(): Response<List<Location>>
+
+    @GET ("/api/analytics/location/{location_id}/crime-intensity")
+    suspend fun getCrimeIntensity(
+        @Path("location_id") locationId: Int
+    ): Response<List<CrimeIntensity>>
+
+    @GET("/api/analytics/location/{location_id}/crime-type/{crime_type_id}/trend")
+    suspend fun getCrimeTrend(
+        @Path("location_id") locationId: Int,
+        @Path("crime_type_id") crimeTypeId: Int
+    ): Response<List<CrimeTrendPoint>>
+
+    @GET("/api/analytics/location/{location_id}/risk-levels")
+    suspend fun getRiskLevels(
+        @Path("location_id") locationId: Int
+    ): Response<List<CrimeRisk>>
+
+
+
+
 }

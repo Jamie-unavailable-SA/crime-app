@@ -18,6 +18,13 @@ from app.db import session as db_session
 from app.models import sqlalchemy_models as models
 from app.crud import crud_auth, crud_reports
 
+
+class ReporterUpdate(BaseModel):
+    f_name: Optional[str] = None
+    l_name: Optional[str] = None
+    email: Optional[str] = None
+    phone: Optional[str] = None
+
 class ReportRequest(BaseModel):
     reporter_id: int
     crime_type_id: int
@@ -203,26 +210,26 @@ async def api_get_reporter(reporter_id: int, db: Session = Depends(db_session.ge
     }
 
 @app.put("/api/reporters/{reporter_id}/update")
-async def api_update_reporter(reporter_id: int, payload: dict, db: Session = Depends(db_session.get_db)):
+async def api_update_reporter(
+    reporter_id: int,
+    payload: ReporterUpdate,
+    db: Session = Depends(db_session.get_db)
+):
     rep = crud_auth.get_reporter_by_id(db, reporter_id)
     if not rep:
         return {"error": "reporter not found"}
-    f_name = payload.get('f_name')
-    l_name = payload.get('l_name')
-    email = payload.get('email')
-    phone = payload.get('phone')
-    updated_rep = crud_auth.update_reporter(db, rep, f_name=f_name, l_name=l_name, email=email, phone=phone)
-    return {
-        "status": "ok",
-        "reporter_id": updated_rep.reporter_id,
-        "alias": updated_rep.alias,
-        "f_name": updated_rep.f_name,
-        "l_name": updated_rep.l_name,
-        "email": updated_rep.email,
-        "phone": updated_rep.phone,
-        "date_joined": updated_rep.date_joined,
-        "last_login": updated_rep.last_login
-    }
+
+    updated_rep = crud_auth.update_reporter(
+        db,
+        rep,
+        alias=payload.alias,
+        f_name=payload.f_name,
+        l_name=payload.l_name,
+        email=payload.email,
+        phone=payload.phone
+    )
+
+    return updated_rep
 
 @app.post("/api/reports")
 async def api_create_report(
@@ -358,6 +365,51 @@ async def api_upload_report_addon(report_id: int, file: UploadFile = File(...), 
     size = os.path.getsize(dest_path)
     addon = crud_reports.add_report_addon(db=db, report_id=report_id, file_path=dest_path, file_type=file_type, file_size=size)
     return {"status": "ok", "addon_id": addon.addon_id, "file_path": addon.file_path}
+
+@app.get("/api/analytics/location/{location_id}/crime-intensity")
+def crime_intensity(location_id: int, db: Session = Depends(get_db)):
+    rows = (
+        db.query(CrimeType.name, func.count(Report.report_id))
+        .join(Report, Report.crime_type_id == CrimeType.crime_type_id)
+        .filter(Report.location_id == location_id)
+        .group_by(CrimeType.name)
+        .all()
+    )
+    return [{"crime_type": r[0], "count": r[1]} for r in rows]
+
+
+@app.get("/api/analytics/location/{location_id}/crime-type/{crime_type_id}/trend")
+def crime_trend(location_id: int, crime_type_id: int, db: Session = Depends(get_db)):
+    rows = (
+        db.query(func.date(Report.occurrence_time), func.count(Report.report_id))
+        .filter(Report.location_id == location_id)
+        .filter(Report.crime_type_id == crime_type_id)
+        .group_by(func.date(Report.occurrence_time))
+        .order_by(func.date(Report.occurrence_time))
+        .all()
+    )
+    return [{"date": str(r[0]), "count": r[1]} for r in rows]
+
+@app.get("/api/analytics/location/{location_id}/risk-levels")
+def risk_levels(location_id: int, db: Session = Depends(get_db)):
+    rows = (
+        db.query(CrimeType.name, func.count(Report.report_id))
+        .join(Report, Report.crime_type_id == CrimeType.crime_type_id)
+        .filter(Report.location_id == location_id)
+        .group_by(CrimeType.name)
+        .all()
+    )
+
+    results = []
+    for crime_type, count in rows:
+        level = (
+            "Low" if count < 3 else
+            "Medium" if count < 7 else
+            "High"
+        )
+        results.append({"crime_type": crime_type, "level": level})
+    return results
+
 
 @app.get("/org/dashboard", response_class=HTMLResponse)
 async def org_dashboard(request: Request, db: Session = Depends(db_session.get_db)):

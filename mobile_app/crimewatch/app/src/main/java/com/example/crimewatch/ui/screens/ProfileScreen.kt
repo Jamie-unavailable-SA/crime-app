@@ -36,8 +36,8 @@ import com.example.crimewatch.viewmodel.UserProfileResult
 fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel = viewModel()) {
     val userProfileState by authViewModel.userProfileState.collectAsState()
     var alias by remember { mutableStateOf("") }
-    var firstName by remember { mutableStateOf("") }
-    var lastName by remember { mutableStateOf("") }
+    var f_name by remember { mutableStateOf("") }
+    var l_name by remember { mutableStateOf("") }
     var email by remember { mutableStateOf("") }
     var phone by remember { mutableStateOf("") }
     // Safely update state when the user profile is loaded
@@ -45,8 +45,8 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel = v
         if (userProfileState is UserProfileResult.Success) {
             val user = (userProfileState as UserProfileResult.Success).user
             alias = user.alias
-            firstName = user.firstName ?: ""
-            lastName = user.lastName ?: ""
+            f_name = user.f_name ?: ""
+            l_name = user.l_name ?: ""
             email = user.email ?: ""
             phone = user.phone ?: ""
         }
@@ -78,12 +78,12 @@ fun ProfileScreen(navController: NavController, authViewModel: AuthViewModel = v
             is UserProfileResult.Success -> {
                 ProfileForm(
                     alias = alias, onAliasChange = { alias = it },
-                    firstName = firstName, onFirstNameChange = { firstName = it },
-                    lastName = lastName, onLastNameChange = { lastName = it },
+                    firstName = f_name, onFirstNameChange = { f_name = it },
+                    lastName = l_name, onLastNameChange = { l_name = it },
                     email = email, onEmailChange = { email = it },
                     phone = phone, onPhoneChange = { phone = it },
                     onSaveChanges = {
-                        authViewModel.updateProfile(alias, firstName, lastName, email, phone)
+                        authViewModel.updateProfile(alias, f_name, l_name, email, phone)
                     },
                     onLogout = {
                         authViewModel.logout()
