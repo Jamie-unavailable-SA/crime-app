@@ -2,6 +2,10 @@
 <html>
 <head>
     <title>Organisation Dashboard</title>
+
+    <!-- =======================
+         STYLES
+    ======================= -->
     <style>
         body {
             font-family: "Segoe UI", sans-serif;
@@ -18,44 +22,95 @@
         }
         .topbar h1 { margin: 0; font-size: 22px; }
         .logout-btn {
-            background: #e5534b; color: white; border: none;
-            padding: 10px 22px; border-radius: 6px; cursor: pointer;
-            font-size: 16px; text-decoration: none; transition: background 0.2s;
+            background: #e5534b;
+            color: white;
+            border: none;
+            padding: 10px 22px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 16px;
+            text-decoration: none;
         }
         .logout-btn:hover { background: #c82333; }
+
         .container {
-            max-width: 1000px; margin: 30px auto; background: white;
-            border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.12);
+            max-width: 1100px;
+            margin: 30px auto;
+            background: white;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.12);
             padding: 40px 50px;
         }
+
         form {
-            display: flex; gap: 20px; flex-wrap: wrap; margin-bottom: 25px;
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 25px;
         }
         form input, form select {
-            padding: 10px; font-size: 14px; border: 1px solid #ccc;
-            border-radius: 6px; flex: 1;
+            padding: 10px;
+            font-size: 14px;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            flex: 1;
         }
         form button {
-            background: #007BFF; color: white; border: none;
-            padding: 10px 20px; border-radius: 6px; cursor: pointer;
+            background: #007BFF;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 6px;
+            cursor: pointer;
         }
         form button:hover { background: #0056b3; }
+
         table {
-            width: 100%; border-collapse: collapse; margin-top: 15px;
-            background: white; border-radius: 6px; overflow: hidden;
+            width: 100%;
+            border-collapse: collapse;
+            margin-top: 15px;
+            background: white;
+            border-radius: 6px;
+            overflow: hidden;
             box-shadow: 0 2px 6px rgba(0,0,0,0.1);
         }
-        th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+        th, td {
+            border: 1px solid #ddd;
+            padding: 12px;
+            text-align: left;
+        }
         th { background: #e1e4e8; }
         tr:hover { background: #f0f0f0; }
+         #heatmapLegend {
+            background: white;
+            padding: 10px;
+            line-height: 1.4;
+            width: 160px;
+        }
+        .legend-color {
+            width: 18px;
+            height: 18px;
+            display: inline-block;
+            margin-right: 6px;
+            border-radius: 4px;
+        }
     </style>
+
+    <!-- =======================
+         JS LIBRARIES
+    ======================= -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet.heat/dist/leaflet-heat.js"></script>
 </head>
+
 <body>
     <div class="topbar">
         <h1>Welcome, {{ org_name }}</h1>
         <a class="logout-btn" href="/org/logout">Logout</a>
     </div>
-
 
     <div class="container">
         <h2>Search Reports</h2>
@@ -66,11 +121,10 @@
                     <option value="{{ ctype.name }}">{{ ctype.name }}</option>
                 {% endfor %}
             </select>
-            <input type="date" name="date_from" placeholder="From">
-            <input type="date" name="date_to" placeholder="To">
+            <input type="date" name="date_from">
+            <input type="date" name="date_to">
             <button type="submit">Search</button>
         </form>
-
 
         <h2>Submitted Reports</h2>
         <table>
@@ -95,8 +149,8 @@
                     <td>{{ r.location }}</td>
                     <td>{{ r.date }}</td>
                     <td>
-                        <a href="/api/reports/{{ r.id }}">View</a> |
-                        <a href="/uploads/{{ r.id }}">Files</a>
+                        <a href="/org/report/{{ r.id }}">View</a> |
+                        <a href="/org/report/{{ r.id }}/files">Files</a>
                     </td>
                 </tr>
                 {% else %}
@@ -107,5 +161,126 @@
             </tbody>
         </table>
     </div>
+<!-- HEATMAP SECTION -->
+    <div class="container">
+        <h2>Crime Heatmap</h2>
+        <div id="map" style="height: 520px; width: 100%; border-radius: 12px;"></div>
+
+        <!-- Legend -->
+        <div id="heatmapLegend"></div>
+
+        <h3 style="margin-top: 40px;">Reports by Crime Type</h3>
+        <canvas id="crimeTypeChart"></canvas>
+
+        <h3 style="margin-top: 40px;">Reports by Location</h3>
+        <canvas id="locationChart"></canvas>
+
+        <h3 style="margin-top: 40px;">Crime Trend (Last 30 Days)</h3>
+        <canvas id="trendChart"></canvas>
+    </div>
+    <script>
+        document.addEventListener("DOMContentLoaded", async () => {
+
+        const res = await fetch("/api/org/api/org/analytics?days=30");
+        const data = await res.json();
+
+            // --------------------------
+            // Base Map
+            // --------------------------
+            var map = L.map("map").setView([-1.286389, 36.817223], 12);
+            L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png").addTo(map);
+
+            // --------------------------
+            // Color Scale
+            // --------------------------
+            function getColor(count) {
+                return count > 20 ? "#ff0000" :
+                    count > 10 ? "#ff6600" :
+                    count > 5  ? "#ffff00" :
+                    count > 1  ? "#00ffcc" :
+                    count == 1 ? "#0099ff" : 
+                                   "#0000ff"; // zero
+            }
+
+            // --------------------------
+            // Draw a region (circle) around each area centroid
+            // --------------------------
+            data.heatmap.forEach(p => {
+                const count = p.count;
+
+                L.circle([p.lat, p.lng], {
+                    radius: 1000,            // ≈ neighborhood area
+                    color: "#00000055",
+                    weight: 1,
+                    fillColor: getColor(count),
+                    fillOpacity: 0.55
+                }).bindPopup(`
+                    <b>${p.area}</b><br>
+                    Reports: ${count}
+                `).addTo(map);
+            });
+
+
+            // --------------------------
+            // Legend
+            //--------------------------
+            const legend = document.getElementById("heatmapLegend");
+            legend.innerHTML = `
+                <h4>Crime Density</h4>
+                <div><span class="legend-color" style="background:#0099ff"></span> 1 report</div>
+                <div><span class="legend-color" style="background:#00ffcc"></span> 2–5</div>
+                <div><span class="legend-color" style="background:#ffff00"></span> 6–10</div>
+                <div><span class="legend-color" style="background:#ff6600"></span> 11–20</div>
+                <div><span class="legend-color" style="background:#ff0000"></span> 20+</div>
+            `;
+
+            // -------------------------------------
+            // BAR CHART
+            // -------------------------------------
+            new Chart(document.getElementById("crimeTypeChart"), {
+                type: "bar",
+                data: {
+                    labels: data.crime_counts.map(c => c.crime_type),
+                    datasets: [{
+                        label: "Reports",
+                        data: data.crime_counts.map(c => c.count),
+                        backgroundColor: "#3b82f6"
+                    }]
+                }
+            });
+            // ============================
+            //  REPORTS BY LOCATION
+            // ============================
+            new Chart(document.getElementById("locationChart"), {
+                type: "bar",
+                data: {
+                    labels: data.location_counts.map(l => l.location),
+                    datasets: [{
+                        label: "Reports by Location",
+                        data: data.location_counts.map(l => l.count),
+                        backgroundColor: "#10b981"
+                    }]
+                }
+            });
+
+            // -------------------------------------
+            // LINE CHART
+            // -------------------------------------
+            new Chart(document.getElementById("trendChart"), {
+                type: "line",
+                data: {
+                    labels: data.trend.map(t => t.date),
+                    datasets: [{
+                        label: "Reports per Day",
+                        data: data.trend.map(t => t.count),
+                        borderColor: "#ef4444",
+                        tension: 0.3
+                    }]
+                }
+            });
+
+        });
+        </script>
+
 </body>
 </html>

@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 import os
 from uuid import uuid4
-from datetime import datetime
+from datetime import datetime, timedelta
 from pydantic import BaseModel
 import json
 from fastapi import Body
@@ -15,8 +15,9 @@ UPLOAD_DIR = os.environ.get("REPORT_UPLOAD_DIR", r"D:\Project\crime-app\uploads"
 os.makedirs(UPLOAD_DIR, exist_ok=True)
 from starlette import status
 from fastapi import Query
+from app.db.session import get_db
 
-from app.routers import analytics_router
+from app.routers import analytics_router, org_analytics_router
 from app.db import session as db_session
 from app.models import sqlalchemy_models as models
 from app.crud import crud_auth, crud_reports
@@ -58,6 +59,13 @@ app.add_middleware(
 
 router = APIRouter()
 app.include_router(analytics_router.router, prefix="/api")
+app.include_router(org_analytics_router.router, prefix="/api/org")
+app.mount(
+    "/static",
+    StaticFiles(directory=r"D:\Project\crime-app\web_app\static"),
+    name="static"
+)
+
 
 # Mount templates
 templates = Jinja2Templates(directory="D:\Project\crime-app\web_app")
@@ -520,3 +528,69 @@ async def org_logout_get(request: Request, db: Session = Depends(db_session.get_
     response = RedirectResponse(url="/", status_code=303)
     response.delete_cookie("session_token")
     return response
+
+@app.get("/api/analytics/regions")
+def region_heatmap(days: int = 30, db: Session = Depends(get_db)):
+    since = datetime.utcnow() - timedelta(days=days)
+
+    regions = db.query(models.Location).all()
+
+    results = []
+
+    for r in regions:
+        count = (
+            db.query(models.Report)
+            .filter(
+                models.Report.location_id == r.location_id,
+                models.Report.date_reported >= since
+            )
+            .count()
+        )
+
+        # Color logic
+        level = (
+            "High" if count >= 20 else
+            "Medium" if count >= 5 else
+            "Low"
+        )
+
+        results.append({
+            "location_id": r.location_id,
+            "area": r.area,
+            "count": count,
+            "level": level
+        })
+
+    return results
+
+@app.get("/org/report/{report_id}", response_class=HTMLResponse)
+async def org_view_report(report_id: int, request: Request, db: Session = Depends(get_db)):
+    report = (
+        db.query(models.Report)
+        .filter(models.Report.report_id == report_id)
+        .first()
+    )
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    return templates.TemplateResponse(
+        "org_view_report.html",
+        {
+            "request": request,
+            "report": report
+        }
+    )
+
+@app.get("/org/report/{report_id}/files", response_class=HTMLResponse)
+async def org_view_report_files(report_id: int, request: Request, db: Session = Depends(get_db)):
+    report = db.query(models.Report).filter(models.Report.report_id == report_id).first()
+
+    if not report:
+        raise HTTPException(status_code=404, detail="Report not found")
+
+    return templates.TemplateResponse(
+        "org_report_files.html",
+        {"request": request, "report": report, "files": report.addons}
+    )
+

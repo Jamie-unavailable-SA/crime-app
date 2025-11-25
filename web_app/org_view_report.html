@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Report {{ report.report_id }}</title>
+    <style>
+        body { font-family: "Segoe UI"; padding: 20px; background:#f6f8fa; }
+        .box {
+            padding: 25px;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            max-width: 800px;
+            margin: auto;
+        }
+        h2 { margin-top: 0; }
+        .addon {
+            margin: 10px 0;
+        }
+        img, video {
+            max-width: 100%;
+            border-radius: 8px;
+        }
+        .field-label { font-weight: bold; }
+    </style>
+</head>
+<body>
+<div class="box">
+
+    <h2>Report #{{ report.report_id }}</h2>
+
+    <h3>Crime Details</h3>
+    <p><span class="field-label">Crime Type:</span> {{ report.crime_type.name }}</p>
+    <p><span class="field-label">Location:</span> {{ report.location.area }}</p>
+    <p><span class="field-label">Occurred:</span> {{ report.occurrence_time }}</p>
+    <p><span class="field-label">Reported:</span> {{ report.date_reported }}</p>
+
+    <h3>Reporter Details</h3>
+    <p><span class="field-label">Alias:</span> {{ report.reporter.alias }}</p>
+    <p><span class="field-label">Name:</span> 
+        {{ report.reporter.f_name }} {{ report.reporter.l_name }}
+    </p>
+    <p><span class="field-label">Email:</span> {{ report.reporter.email or "Not provided" }}</p>
+    <p><span class="field-label">Phone:</span> {{ report.reporter.phone or "Not provided" }}</p>
+
+    <h3>Description</h3>
+    <p>{{ report.description }}</p>
+
+    <h3>Attached Files</h3>
+    {% if report.addons %}
+        {% for f in report.addons %}
+            <div class="addon">
+                {% if f.file_type == "image" %}
+                    <img src="{{ f.file_path.replace('\\', '/') | replace('D:/Project/crime-app', '') }}" />
+                {% elif f.file_type == "video" %}
+                    <video controls>
+                        <source src="{{ f.file_path.replace('\\', '/') | replace('D:/Project/crime-app', '') }}">
+                    </video>
+                {% endif %}
+            </div>
+        {% endfor %}
+    {% else %}
+        <p>No files uploaded.</p>
+    {% endif %}
+</div>
+</body>
+</html>

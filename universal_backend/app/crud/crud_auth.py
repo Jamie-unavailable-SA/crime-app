@@ -21,6 +21,7 @@ def create_org(db: Session, org_name: str, contact_person: str, contact_email: s
         contact_phone=contact_phone,
         password=hashed,
     )
+    org.is_approved = False
     db.add(org)
     db.commit()
     db.refresh(org)

@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Files for Report {{ report.report_id }}</title>
+    <style>
+        body { font-family: Segoe UI; padding:20px; }
+        .file-item { margin-bottom: 20px; }
+        img, video { max-width: 100%; border-radius: 8px; }
+    </style>
+</head>
+<body>
+
+<h2>Files for Report #{{ report.report_id }}</h2>
+
+{% if files %}
+    {% for f in files %}
+        <div class="file-item">
+            <p><b>Type:</b> {{ f.file_type }}</p>
+            {% if f.file_type == "image" %}
+                <img src="{{ f.file_path.replace('\\', '/') | replace('D:/Project/crime-app', '') }}">
+            {% elif f.file_type == "video" %}
+                <video controls>
+                    <source src="{{ f.file_path.replace('\\', '/') | replace('D:/Project/crime-app', '') }}">
+                </video>
+            {% endif %}
+        </div>
+    {% endfor %}
+{% else %}
+    <p>No files uploaded.</p>
+{% endif %}
+
+</body>
+</html>
