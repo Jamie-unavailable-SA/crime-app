@@ -140,6 +140,29 @@ class AuthViewModel(application: Application) : AndroidViewModel(application) {
         _loginState.value = LoginResult.Empty
         _userProfileState.value = UserProfileResult.Empty
     }
+
+    fun deleteReporter(onSuccess: () -> Unit, onError: (String) -> Unit) {
+        viewModelScope.launch {
+            try {
+                val reporterId = sessionManager.getReporterId()
+                if (reporterId == -1) {
+                    onError("Not logged in")
+                    return@launch
+                }
+                // call DELETE /api/reporters/{id}?confirm=true
+                val response = apiService.deleteAccount(reporterId, true) // we'll add method to ApiService
+                if (response.isSuccessful) {
+                    // clear session
+                    sessionManager.clearSession()
+                    onSuccess()
+                } else {
+                    onError("Delete failed: ${response.code()} ${response.message()}")
+                }
+            } catch (e: Exception) {
+                onError(e.message ?: "Unknown error")
+            }
+        }
+    }
 }
 
 sealed class LoginResult {

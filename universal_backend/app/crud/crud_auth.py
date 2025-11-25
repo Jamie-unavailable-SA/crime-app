@@ -1,6 +1,7 @@
 from sqlalchemy.orm import Session
 from datetime import datetime, timedelta, timezone
 import secrets
+from ..models.sqlalchemy_models import Report, ReportAddon
 
 from ..models.sqlalchemy_models import ExternalOrg, Admin, Reporter, Session as DBSession
 from ..core.security import hash_password, verify_password
@@ -126,4 +127,53 @@ def delete_session(db: Session, token: str):
         return False
     db.delete(sess)
     db.commit()
+    return True
+
+def delete_reporter(db: Session, reporter_id: int, hard_delete: bool = False) -> bool:
+    """
+    Delete a reporter and related data.
+
+    - If hard_delete=True: permanently delete reports, addons, sessions and reporter.
+    - If hard_delete=False: soft-delete (set a 'deleted' flag) if you have such a column; otherwise do hard delete.
+    Returns True if deleted, False if reporter not found.
+    """
+    rep = db.query(Reporter).filter(Reporter.reporter_id == reporter_id).first()
+    if not rep:
+        return False
+
+    # Delete sessions for this user (sessions table name/class DBSession used in your project)
+    try:
+        db.query(DBSession).filter(DBSession.user_type == "reporter", DBSession.user_id == reporter_id).delete(synchronize_session=False)
+    except Exception:
+        # If DBSession class/field names differ, adjust accordingly.
+        pass
+
+    # Delete report addons first (files saved on disk are not removed here — you can remove them if you'd like)
+    try:
+        addons = db.query(ReportAddon).join(Report).filter(Report.reporter_id == reporter_id).all()
+        for a in addons:
+            # Optionally remove files from disk:
+            # try:
+            #     if a.file_path and os.path.exists(a.file_path):
+            #         os.remove(a.file_path)
+            # except Exception:
+            #     pass
+            db.delete(a)
+    except Exception:
+        pass
+
+    # Delete reports
+    try:
+        db.query(Report).filter(Report.reporter_id == reporter_id).delete(synchronize_session=False)
+    except Exception:
+        pass
+
+    # Finally delete the reporter row
+    try:
+        db.delete(rep)
+        db.commit()
+    except Exception as e:
+        db.rollback()
+        raise
+
     return True

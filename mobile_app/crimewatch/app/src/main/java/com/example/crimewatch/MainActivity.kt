@@ -4,6 +4,7 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Icon
 import androidx.compose.material3.NavigationBar
@@ -11,6 +12,7 @@ import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.navigation.NavDestination.Companion.hierarchy
@@ -21,13 +23,18 @@ import androidx.navigation.compose.rememberNavController
 import com.example.crimewatch.ui.navigation.AppGraph
 import com.example.crimewatch.ui.navigation.BottomNavItem
 import com.example.crimewatch.ui.theme.CrimewatchTheme
+import com.example.crimewatch.viewmodel.SettingsViewModel
 
 class MainActivity : ComponentActivity() {
+
+    private val settingsViewModel: SettingsViewModel by viewModels()
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            CrimewatchTheme {
+            val darkMode by settingsViewModel.darkMode.collectAsState()
+            CrimewatchTheme(darkTheme = darkMode) {
                 val navController = rememberNavController()
                 MainScreen(navController = navController)
             }

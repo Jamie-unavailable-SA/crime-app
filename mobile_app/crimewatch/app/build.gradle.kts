@@ -54,9 +54,10 @@ dependencies {
     implementation("com.google.code.gson:gson:2.10.1")
     implementation("androidx.navigation:navigation-compose:2.7.7")
     implementation("io.coil-kt:coil-compose:2.5.0")
-    implementation("com.github.tehras:charts:0.2.4")
-    implementation("me.bytebeats.views:charts:0.1.1")
-    implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
+    implementation("androidx.datastore:datastore-preferences:1.2.0")
+    //implementation("com.github.tehras:charts:0.2.4")
+   // implementation("me.bytebeats.views:charts:0.1.1")
+    //implementation("com.github.PhilJay:MPAndroidChart:v3.1.0")
 
 
     // Retrofit

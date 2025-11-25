@@ -1,4 +1,6 @@
 package com.example.crimewatch.data.models
 
-class RiskLevel {
-}
+data class RiskLevel(
+    val crime_type: String,
+    val level: String
+)

@@ -1,4 +1,6 @@
 package com.example.crimewatch.data.models
 
-class ReportCountSummary {
-}
+data class ReportCountSummary(
+    val crime_type: String,
+    val count: Int
+)

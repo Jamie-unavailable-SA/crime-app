@@ -51,23 +51,35 @@ interface ApiService {
     @GET("api/locations")
     suspend fun getLocations(): Response<List<Location>>
 
-    @GET ("/api/analytics/location/{location_id}/crime-intensity")
-    suspend fun getCrimeIntensity(
-        @Path("location_id") locationId: Int
-    ): Response<List<CrimeIntensity>>
 
-    @GET("/api/analytics/location/{location_id}/crime-type/{crime_type_id}/trend")
-    suspend fun getCrimeTrend(
-        @Path("location_id") locationId: Int,
-        @Path("crime_type_id") crimeTypeId: Int
-    ): Response<List<CrimeTrendPoint>>
+    @GET("api/analytics/summary")
+    suspend fun getAnalyticsSummary(
+        @Query("location_id") locationId: Int,
+        @Query("crime_type_id") crimeTypeId: Int? = null,
+        @Query("range") range: String = "30 days"
+    ): List<ReportCountSummary>
 
-    @GET("/api/analytics/location/{location_id}/risk-levels")
+    @GET("api/analytics/risk-levels")
     suspend fun getRiskLevels(
-        @Path("location_id") locationId: Int
-    ): Response<List<CrimeRisk>>
+        @Query("location_id") locationId: Int
+    ): List<RiskLevel>
 
+    @GET("api/analytics/reports")
+    suspend fun getRecentReports(
+        @Query("location_id") locationId: Int,
+        @Query("limit") limit: Int = 10
+    ): List<RecentReport>
 
+    @GET("api/analytics")
+    suspend fun getAnalytics(
+        @Query("location_id") locationId: Int,
+        @Query("crime_type_id") crimeTypeId: Int? = null,
+        @Query("range") range: String = "30 days"
+    ): Response<AnalyticsResponse>
 
-
+    @DELETE("api/reporters/{reporter_id}")
+    suspend fun deleteAccount(
+        @Path("reporter_id") reporterId: Int,
+        @Query("confirm") confirm: Boolean = true
+    ): Response<Unit>
 }

@@ -1,4 +1,7 @@
 package com.example.crimewatch.data.models
 
-class RecentReport {
-}
+data class RecentReport(
+    val crime_type: String,
+    val description: String,
+    val time_ago: String
+)

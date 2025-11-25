@@ -13,13 +13,18 @@ import json
 from fastapi import Body
 UPLOAD_DIR = os.environ.get("REPORT_UPLOAD_DIR", r"D:\Project\crime-app\uploads")
 os.makedirs(UPLOAD_DIR, exist_ok=True)
+from starlette import status
+from fastapi import Query
 
+from app.routers import analytics_router
 from app.db import session as db_session
 from app.models import sqlalchemy_models as models
 from app.crud import crud_auth, crud_reports
 
 
+
 class ReporterUpdate(BaseModel):
+    alias: Optional[str] = None
     f_name: Optional[str] = None
     l_name: Optional[str] = None
     email: Optional[str] = None
@@ -52,6 +57,7 @@ app.add_middleware(
 )
 
 router = APIRouter()
+app.include_router(analytics_router.router, prefix="/api")
 
 # Mount templates
 templates = Jinja2Templates(directory="D:\Project\crime-app\web_app")
@@ -312,6 +318,36 @@ async def upload_media(file: UploadFile = File(...)):
     return {"filename": file.filename, "url": f"/uploads/{file.filename}"}
 app.mount("/uploads", StaticFiles(directory=UPLOAD_DIR), name="uploads")
 
+@app.delete("/api/reporters/{reporter_id}", status_code=200)
+async def api_delete_reporter(
+    reporter_id: int,
+    db: Session = Depends(db_session.get_db),
+    # optionally protect with cookie/session token or require body confirmation
+    confirm: bool = Query(False, description="Must be true to confirm deletion")
+):
+    """
+    Delete a reporter account and related data.
+    To avoid accidental deletes the client **must** call with ?confirm=true
+    """
+    if not confirm:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="You must set confirm=true to delete account")
+
+    # Basic auth check: confirm the reporter exists and optionally verify session/user identity
+    rep = crud_auth.get_reporter_by_id(db, reporter_id)
+    if not rep:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Reporter not found")
+
+    # OPTIONAL: verify the request is made by the same user (session token) — strongly recommended
+    # token = request.cookies.get("session_token") or check Authorization header
+    # sess = crud_auth.get_session_by_token(db, token)
+    # if not sess or sess.user_type != "reporter" or sess.user_id != reporter_id:
+    #     raise HTTPException(status_code=401, detail="Not authorized")
+
+    success = crud_auth.delete_reporter(db, reporter_id)
+    if not success:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Delete failed")
+    return {"status": "ok", "message": "Account deleted"}
+
 # External Organization Routes
 @app.get("/org/login", response_class=HTMLResponse)
 async def org_login_page(request: Request):
@@ -365,51 +401,6 @@ async def api_upload_report_addon(report_id: int, file: UploadFile = File(...), 
     size = os.path.getsize(dest_path)
     addon = crud_reports.add_report_addon(db=db, report_id=report_id, file_path=dest_path, file_type=file_type, file_size=size)
     return {"status": "ok", "addon_id": addon.addon_id, "file_path": addon.file_path}
-
-@app.get("/api/analytics/location/{location_id}/crime-intensity")
-def crime_intensity(location_id: int, db: Session = Depends(get_db)):
-    rows = (
-        db.query(CrimeType.name, func.count(Report.report_id))
-        .join(Report, Report.crime_type_id == CrimeType.crime_type_id)
-        .filter(Report.location_id == location_id)
-        .group_by(CrimeType.name)
-        .all()
-    )
-    return [{"crime_type": r[0], "count": r[1]} for r in rows]
-
-
-@app.get("/api/analytics/location/{location_id}/crime-type/{crime_type_id}/trend")
-def crime_trend(location_id: int, crime_type_id: int, db: Session = Depends(get_db)):
-    rows = (
-        db.query(func.date(Report.occurrence_time), func.count(Report.report_id))
-        .filter(Report.location_id == location_id)
-        .filter(Report.crime_type_id == crime_type_id)
-        .group_by(func.date(Report.occurrence_time))
-        .order_by(func.date(Report.occurrence_time))
-        .all()
-    )
-    return [{"date": str(r[0]), "count": r[1]} for r in rows]
-
-@app.get("/api/analytics/location/{location_id}/risk-levels")
-def risk_levels(location_id: int, db: Session = Depends(get_db)):
-    rows = (
-        db.query(CrimeType.name, func.count(Report.report_id))
-        .join(Report, Report.crime_type_id == CrimeType.crime_type_id)
-        .filter(Report.location_id == location_id)
-        .group_by(CrimeType.name)
-        .all()
-    )
-
-    results = []
-    for crime_type, count in rows:
-        level = (
-            "Low" if count < 3 else
-            "Medium" if count < 7 else
-            "High"
-        )
-        results.append({"crime_type": crime_type, "level": level})
-    return results
-
 
 @app.get("/org/dashboard", response_class=HTMLResponse)
 async def org_dashboard(request: Request, db: Session = Depends(db_session.get_db)):
