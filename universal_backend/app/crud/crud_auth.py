@@ -178,3 +178,12 @@ def delete_reporter(db: Session, reporter_id: int, hard_delete: bool = False) ->
         raise
 
     return True
+
+def create_admin(db: Session, password: str):
+    """Create a new admin with only a password (hashed). Returns the created Admin model."""
+    hashed = hash_password(password)
+    admin = Admin(password=hashed)
+    db.add(admin)
+    db.commit()
+    db.refresh(admin)
+    return admin

@@ -7,7 +7,7 @@ from fastapi.staticfiles import StaticFiles
 from sqlalchemy.orm import Session
 import os
 from uuid import uuid4
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from pydantic import BaseModel
 import json
 from fastapi import Body
@@ -17,7 +17,7 @@ from starlette import status
 from fastapi import Query
 from app.db.session import get_db
 
-from app.routers import analytics_router, org_analytics_router
+from app.routers import analytics_router, org_analytics_router, admin_management_router
 from app.db import session as db_session
 from app.models import sqlalchemy_models as models
 from app.crud import crud_auth, crud_reports
@@ -60,11 +60,14 @@ app.add_middleware(
 router = APIRouter()
 app.include_router(analytics_router.router, prefix="/api")
 app.include_router(org_analytics_router.router, prefix="/api/org")
+app.include_router(admin_management_router.router, prefix="/api/admin")
 app.mount(
     "/static",
     StaticFiles(directory=r"D:\Project\crime-app\web_app\static"),
     name="static"
 )
+app.mount("/uploads", StaticFiles(directory="D:/Project/crime-app/uploads"), name="uploads")
+
 
 
 # Mount templates
@@ -131,6 +134,8 @@ async def admin_login(request: Request, admin_id: str = Form(...), password: str
         return templates.TemplateResponse("admin_login.html", {"request": request, "error": "Invalid credentials"})
     # successful admin login: create a session and set a secure cookie, then redirect to admin dashboard
     sess = crud_auth.create_session(db, user_type="admin", user_id=adm.admin_id)
+    adm.last_login = datetime.now(timezone.utc)
+    db.commit()
     response = RedirectResponse(url="/admin/dashboard", status_code=303)
     response.set_cookie("session_token", sess.token, httponly=True, samesite="lax", max_age=24 * 3600)
     return response
@@ -594,3 +599,57 @@ async def org_view_report_files(report_id: int, request: Request, db: Session = 
         {"request": request, "report": report, "files": report.addons}
     )
 
+@app.get("/reporter/{reporter_id}/reports", response_class=HTMLResponse)
+def reporter_reports(
+    reporter_id: int,
+    request: Request,
+    db: Session = Depends(get_db)
+):
+    # Fetch reporter
+    reporter = (
+        db.query(models.Reporter)
+        .filter(models.Reporter.reporter_id == reporter_id)
+        .first()
+    )
+
+    if not reporter:
+        return templates.TemplateResponse(
+            "error.html",
+            {"request": request, "message": "Reporter not found"},
+            status_code=404
+        )
+
+    # Fetch reports with addons, crime type, and location
+    reports = (
+        db.query(models.Report)
+        .filter(models.Report.reporter_id == reporter_id)
+        .all()
+    )
+
+    return templates.TemplateResponse(
+        "reporter_reports.html",
+        {
+            "request": request,
+            "reporter": reporter,
+            "reports": reports
+        }
+    )
+
+@app.post("/reports/{report_id}/delete")
+def delete_report(report_id: int, db: Session = Depends(get_db)):
+    report = db.query(models.Report).filter(models.Report.report_id == report_id).first()
+
+    if not report:
+        raise HTTPException(404, "Report not found")
+
+    # Delete associated addon files
+    for addon in report.addons:
+        file_path = f"uploads/{addon.file_path}"
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+    # Delete report
+    db.delete(report)
+    db.commit()
+
+    return RedirectResponse(url="/admin/dashboard", status_code=303)
